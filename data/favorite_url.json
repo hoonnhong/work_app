@@ -1,0 +1,33 @@
+
+[
+  {
+    "id": 1,
+    "title": "React 공식 문서",
+    "url": "https://react.dev/",
+    "category": "개발"
+  },
+  {
+    "id": 2,
+    "title": "Tailwind CSS",
+    "url": "https://tailwindcss.com/",
+    "category": "개발"
+  },
+  {
+    "id": 3,
+    "title": "Gemini API 문서",
+    "url": "https://ai.google.dev/docs",
+    "category": "AI"
+  },
+  {
+    "id": 4,
+    "title": "Figma",
+    "url": "https://www.figma.com/",
+    "category": "디자인"
+  },
+  {
+    "id": 5,
+    "title": "Vercel",
+    "url": "https://vercel.com/",
+    "category": "배포"
+  }
+]

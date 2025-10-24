@@ -1,0 +1,5 @@
+{
+  "name": "Gemini 미니 도우미",
+  "description": "Gemini API를 기반으로 하는 다용도 웹 애플리케이션으로, 텍스트 다듬기, 번역, 계산 및 비즈니스 유틸리티 등 다양한 작업을 지원합니다. 깔끔하고 직관적인 인터페이스에서 AI 기반 도구 모음을 제공합니다.",
+  "requestFramePermissions": []
+}
