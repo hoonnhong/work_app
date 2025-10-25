@@ -80,62 +80,93 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
     setSanitizedContent(cleanHtml);
   }, [content]); // `content` props가 변경될 때만 이 effect를 다시 실행합니다.
 
-  // 이 `useEffect`는 `sanitizedContent`가 바뀐 후에 수학 공식을 렌더링하는 역할을 합니다.
+  // 이 `useEffect`는 `sanitizedContent`가 바뀐 후에 수학 공식 렌더링과 코드 블록 복사 버튼 추가를 담당합니다.
   // HTML이 DOM에 실제로 렌더링된 후에 실행되어야 하므로 별도의 effect로 분리합니다.
   useEffect(() => {
-    // 렌더링할 콘텐츠나 DOM 요소가 없으면 아무 작업도 하지 않습니다.
+    // 렌더링할 콘텐츠나 DOM 요소가 없으면 작업을 중단합니다.
     if (!sanitizedContent || !contentRef.current) return;
 
     const contentElement = contentRef.current;
     let intervalId: number | undefined;
     let timeoutId: number | undefined;
 
-    const renderMath = () => {
-        try {
-            // KaTeX 라이브러리의 `renderMathInElement` 함수가 로드되었는지 확인합니다.
-            if (window.renderMathInElement) {
-                console.log('🔍 KaTeX 렌더링 시작...');
-                // DOM 요소 안의 수학 공식(예: $E=mc^2$)을 찾아 렌더링합니다.
-                window.renderMathInElement(contentElement, {
-                    delimiters: [
-                        {left: '$$', right: '$$', display: true},
-                        {left: '$', right: '$', display: false},
-                        {left: '\\(', right: '\\)', display: false},
-                        {left: '\\[', right: '\\]', display: true}
-                    ],
-                    throwOnError: false, // 렌더링 오류가 발생해도 중단되지 않도록 설정합니다.
-                    strict: false // 엄격 모드를 비활성화하여 다양한 수식 형식 허용
+    const renderMath = () => {        
+      let rendered = false;
+      try {
+          // KaTeX 라이브러리의 `renderMathInElement` 함수가 로드되었는지 확인합니다.
+          if (window.renderMathInElement) {
+              console.log('🔍 KaTeX 렌더링 시작...');
+              // DOM 요소 안의 수학 공식(예: $E=mc^2$)을 찾아 렌더링합니다.
+              window.renderMathInElement(contentElement, {
+                  delimiters: [
+                      {left: '$$', right: '$$', display: true},
+                      {left: '$', right: '$', display: false},
+                      {left: '\\(', right: '\\)', display: false},
+                      {left: '\\[', right: '\\]', display: true}
+                  ],
+                  throwOnError: false, // 렌더링 오류가 발생해도 중단되지 않도록 설정합니다.
+                  strict: false // 엄격 모드를 비활성화하여 다양한 수식 형식 허용
+              });
+              console.log('✅ KaTeX 렌더링 완료');
+              rendered = true;
+          }
+      } catch (error) {
+          console.error('❌ KaTeX 렌더링 오류:', error);
+      }
+      return rendered;
+    };
+
+    // 코드 블록에 '복사' 버튼을 추가하는 함수입니다.
+    const addCopyButtons = () => {
+        if (!contentRef.current) return;
+        // 모든 `<pre>` 태그를 찾습니다.
+        const preElements = contentRef.current.querySelectorAll('pre');
+        preElements.forEach(pre => {
+            // 이미 복사 버튼이 있다면 중복 추가를 방지합니다.
+            if (pre.querySelector('.copy-button')) return;
+
+            // pre 태그를 감싸는 div를 만들어 position: relative를 적용합니다.
+            const wrapper = document.createElement('div');
+            wrapper.style.position = 'relative';
+            pre.parentNode?.insertBefore(wrapper, pre);
+            wrapper.appendChild(pre);
+
+            // 복사 버튼을 생성하고 스타일을 적용합니다.
+            const button = document.createElement('button');
+            button.innerText = '복사';
+            button.className = 'copy-button absolute top-2 right-2 px-2 py-1 text-xs bg-slate-600 text-white rounded hover:bg-slate-700 transition-colors';
+            
+            // 버튼 클릭 시 `<pre>` 태그 내부의 `<code>` 태그 텍스트를 복사합니다.
+            button.onclick = () => {
+                const code = pre.querySelector('code')?.innerText || '';
+                navigator.clipboard.writeText(code).then(() => {
+                    button.innerText = '복사됨!';
+                    setTimeout(() => { button.innerText = '복사'; }, 2000);
                 });
-                console.log('✅ KaTeX 렌더링 완료');
-                return true;
-            }
-            return false;
-        } catch (error) {
-            console.error('❌ KaTeX 렌더링 오류:', error);
-            return false;
-        }
+            };
+            // pre 태그 내부에 버튼을 추가합니다.
+            pre.appendChild(button);
+        });
     };
 
     // KaTeX 라이브러리가 로드되었는지 100ms 간격으로 확인하는 함수 (폴링)
     const checkForKatex = () => {
         if (window.katex && window.renderMathInElement) {
-            console.log('✅ KaTeX 라이브러리 로드 확인됨');
+            console.log('✅ KaTeX 라이브러리 로드 확인됨, 렌더링 시도.');
             if (intervalId) clearInterval(intervalId);
             if (timeoutId) clearTimeout(timeoutId);
 
-            // DOM이 완전히 업데이트될 때까지 약간의 지연 추가
+            // DOM 업데이트를 위해 약간의 지연 후, 수학 렌더링과 복사 버튼 추가를 순차적으로 실행합니다.
             setTimeout(() => {
-                renderMath();
+                if (renderMath()) {
+                    addCopyButtons();
+                }
             }, 50);
         }
     };
 
-    // 즉시 확인하여 이미 로드되었는지 체크합니다.
-    console.log('🔎 KaTeX 로드 상태 확인 중...');
-    checkForKatex();
-
-    // 로드되지 않았다면, 100ms 간격으로 폴링을 시작합니다.
-    intervalId = window.setInterval(checkForKatex, 100);
+    // KaTeX 라이브러리 로드를 기다리기 위해 폴링을 시작합니다.
+    intervalId = window.setInterval(checkForKatex, 200);
 
     // 10초 후에도 로드되지 않으면 폴링을 중단하는 타임아웃을 설정합니다. (5초 -> 10초로 증가)
     timeoutId = window.setTimeout(() => {
