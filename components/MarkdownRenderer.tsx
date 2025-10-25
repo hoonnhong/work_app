@@ -84,6 +84,9 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
 
     // 1. 수식 보호: 마크다운 파싱 전에 LaTeX 수식을 플레이스홀더로 변환
     const { protectedText: protectedContent, mathExpressions } = protectMath(content);
+    console.log('📝 원본 텍스트:', content.substring(0, 200));
+    console.log('🔒 보호된 텍스트:', protectedContent.substring(0, 200));
+    console.log('💾 저장된 수식:', mathExpressions);
 
     // marked 라이브러리의 렌더러를 커스터마이징하여 테이블에 Tailwind CSS 클래스를 추가합니다.
     const renderer = new marked.Renderer() as any;
@@ -118,9 +121,11 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
 
     // 2. `marked.parse`: 보호된 마크다운 텍스트를 HTML로 변환합니다.
     const parsedHtml = marked.parse(protectedContent);
+    console.log('🔄 파싱된 HTML:', (parsedHtml as string).substring(0, 200));
 
     // 3. 수식 복원: 플레이스홀더를 원래 LaTeX 수식으로 되돌립니다.
     const restoredHtml = restoreMath(parsedHtml as string, mathExpressions);
+    console.log('🔓 복원된 HTML:', restoredHtml.substring(0, 200));
 
     // 4. `DOMPurify.sanitize`: 변환된 HTML에서 악성 스크립트 등을 제거하여 안전하게 만듭니다.
     // KaTeX 수학 공식이 제대로 작동하도록 필요한 속성과 태그를 허용합니다.
@@ -128,6 +133,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
       ADD_TAGS: ['span', 'annotation', 'semantics', 'mtext', 'mn', 'mo', 'mi', 'mspace', 'mrow', 'msqrt', 'mtable', 'mtr', 'mtd', 'math'],
       ADD_ATTR: ['class', 'style', 'aria-hidden', 'xmlns']
     });
+    console.log('🧼 소독된 HTML:', cleanHtml.substring(0, 200));
 
     // 5. `setSanitizedContent`: 안전해진 HTML을 상태에 저장합니다. 이 상태 변경으로 인해 컴포넌트가 리렌더링됩니다.
     setSanitizedContent(cleanHtml);
