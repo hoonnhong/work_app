@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import type { Settlement, EmployeeSettlement, ClientSettlement, ActivitySettlement } from '../types';
+import type { Settlement, EmployeeSettlement, ClientSettlement, ActivitySettlement, Employee } from '../types';
 import { PencilSquareIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, SelectorIcon, ClipboardDocumentIcon, CheckIcon } from './Icons';
 import { settlementService } from '../src/firebase/firestore-service';
 
@@ -122,7 +122,7 @@ const InputField: React.FC<{ label: string; name: string; value: string | number
     </div>
 );
 
-const SettlementModal: React.FC<{ settlement: Settlement; onSave: (settle: Settlement) => void; onClose: () => void; }> = ({ settlement, onSave, onClose }) => {
+const SettlementModal: React.FC<{ settlement: Settlement; employees: Employee[]; onSave: (settle: Settlement) => void; onClose: () => void; }> = ({ settlement, employees, onSave, onClose }) => {
     const [formData, setFormData] = useState<any>(settlement);
 
     useEffect(() => {
@@ -178,7 +178,22 @@ const SettlementModal: React.FC<{ settlement: Settlement; onSave: (settle: Settl
                  <h2 className="text-2xl font-bold">{settlement.id ? '정산 내역 수정' : '새 정산 추가'}</h2>
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                      <InputField label="날짜" name="date" type="date" value={formData.date} onChange={handleChange} required/>
-                     <InputField label="이름/거래처명" name="name" value={formData.name} onChange={handleChange} required/>
+                     <div>
+                         <label htmlFor="name" className="block text-sm font-medium text-slate-700 dark:text-slate-300">이름/거래처명</label>
+                         <select
+                             id="name"
+                             name="name"
+                             value={formData.name}
+                             onChange={handleChange}
+                             required
+                             className="mt-1 block w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700"
+                         >
+                             <option value="">선택하세요</option>
+                             {employees.map(emp => (
+                                 <option key={emp.id} value={emp.name}>{emp.name}</option>
+                             ))}
+                         </select>
+                     </div>
                      <div>
                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">구분</label>
                          <select name="category" value={formData.category} onChange={handleCategoryChange} className="mt-1 block w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700">
@@ -264,7 +279,7 @@ const settlementTableColumns = [
 
 // --- Main Component ---
 
-const SettlementManagement: React.FC<{ initialSettlements: Settlement[] }> = ({ initialSettlements }) => {
+const SettlementManagement: React.FC<{ initialSettlements: Settlement[]; employees: Employee[] }> = ({ initialSettlements, employees }) => {
     const [settlements, setSettlements] = useState<Settlement[]>([]);
     const [filters, setFilters] = useState<{ date: string[], name: string[], category: string[], settlementType: string[] }>({ date: [], name: [], category: [], settlementType: [] });
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'date', direction: 'desc' });
@@ -556,7 +571,7 @@ const SettlementManagement: React.FC<{ initialSettlements: Settlement[] }> = ({ 
                  )}
             </div>
             {isModalOpen && editingItem && (
-                <SettlementModal settlement={editingItem} onSave={handleSave} onClose={() => setIsModalOpen(false)} />
+                <SettlementModal settlement={editingItem} employees={employees} onSave={handleSave} onClose={() => setIsModalOpen(false)} />
             )}
         </div>
     );

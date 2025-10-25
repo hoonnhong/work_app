@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "migrate": "node scripts/migrate-to-firestore.js"
+    "migrate": "node scripts/migrate-to-firestore.js",
+    "add-created-at": "node scripts/add-created-at.js"
   },
   "dependencies": {
     "@google/genai": "^1.25.0",

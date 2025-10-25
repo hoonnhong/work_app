@@ -57,7 +57,11 @@ export class FirestoreService<T extends { id?: number | string }> {
   // Add a new document
   async add(data: Omit<T, 'id'>): Promise<string> {
     try {
-      const docRef = await addDoc(collection(db, this.collectionName), data);
+      const dataWithTimestamp = {
+        ...data,
+        createdAt: new Date().toISOString()
+      };
+      const docRef = await addDoc(collection(db, this.collectionName), dataWithTimestamp);
       return docRef.id;
     } catch (error) {
       console.error(`Error adding document to ${this.collectionName}:`, error);
@@ -69,7 +73,11 @@ export class FirestoreService<T extends { id?: number | string }> {
   async setWithId(id: string, data: Omit<T, 'id'>): Promise<void> {
     try {
       const docRef = doc(db, this.collectionName, id);
-      await setDoc(docRef, data);
+      const dataWithTimestamp = {
+        ...data,
+        createdAt: (data as any).createdAt || new Date().toISOString()
+      };
+      await setDoc(docRef, dataWithTimestamp);
     } catch (error) {
       console.error(`Error setting document ${id} in ${this.collectionName}:`, error);
       throw error;

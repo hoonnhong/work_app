@@ -71,7 +71,7 @@ const HrManagementPage: React.FC = () => {
         if (activeTab === 'employees') {
             return <EmployeeManagement initialEmployees={employees} />;
         } else {
-            return <SettlementManagement initialSettlements={settlements} />;
+            return <SettlementManagement initialSettlements={settlements} employees={employees} />;
         }
     };
     

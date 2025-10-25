@@ -23,6 +23,7 @@ export interface Employee {
   bankName: string;     // 계좌 은행 이름
   accountNumber: string;// 계좌번호
   notes: string;        // 기타 추가 사항
+  createdAt?: string;   // 생성 날짜 (ISO 8601 형식)
 }
 
 // 'DevNote' 인터페이스는 개발 노트 한 개의 데이터 구조를 정의합니다.
@@ -32,6 +33,7 @@ export interface DevNote {
   content: string;      // 노트의 내용
   tags: string[];       // 노트를 분류하기 위한 태그 (문자열 배열)
   created_at: string;   // 노트 작성 날짜 (예: "2023-10-27")
+  createdAt?: string;   // 생성 날짜 (ISO 8601 형식)
 }
 
 // 'FavoriteLink' 인터페이스는 자주 가는 사이트 링크 한 개의 데이터 구조를 정의합니다.
@@ -40,6 +42,7 @@ export interface FavoriteLink {
     title: string;      // 링크의 제목 (예: "React 공식 문서")
     url: string;        // 실제 웹사이트 주소 (URL)
     category: string;   // 링크를 분류하기 위한 카테고리 (예: "개발", "디자인")
+    createdAt?: string; // 생성 날짜 (ISO 8601 형식)
 }
 
 // 'NewsArticle' 인터페이스는 뉴스 브리핑에서 가져온 뉴스 기사 한 개의 데이터 구조를 정의합니다.
@@ -96,6 +99,7 @@ export interface EmployeeSettlement {
   employmentSupport: number; // 고용사회보험료지원금
   incomeTax: number; // 소득세
   localTax: number; // 지방세
+  createdAt?: string; // 생성 날짜 (ISO 8601 형식)
 }
 
 // 'ClientSettlement' 인터페이스는 거래처 대금 정산 데이터의 구조를 정의합니다.
@@ -105,6 +109,7 @@ export interface ClientSettlement {
   name: string;
   category: '거래처';
   transactionAmount: number; // 거래대금
+  createdAt?: string; // 생성 날짜 (ISO 8601 형식)
 }
 
 // 'ActivitySettlement' 인터페이스는 활동비/강사비 정산 데이터의 구조를 정의합니다.
@@ -117,6 +122,7 @@ export interface ActivitySettlement {
   fee: number; // 활동비 또는 강사비
   incomeTax: number; // 소득세
   localTax: number; // 지방세
+  createdAt?: string; // 생성 날짜 (ISO 8601 형식)
 }
 
 // `type` 키워드는 새로운 타입을 만드는 데 사용됩니다.
