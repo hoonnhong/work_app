@@ -26,7 +26,7 @@ interface MarkdownRendererProps {
   content: string; // 마크다운 형식의 텍스트 내용
 }
 
-const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
+const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ content }) => {
   // 소독된 HTML 내용을 저장할 상태(state)를 만듭니다.
   const [sanitizedContent, setSanitizedContent] = useState('');
   // 렌더링된 HTML이 담길 div 요소에 접근하기 위해 useRef를 사용합니다.
@@ -256,6 +256,9 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
       dangerouslySetInnerHTML={{ __html: sanitizedContent }}
     />
   );
-};
+});
+
+// 디버깅을 위한 displayName 설정
+MarkdownRenderer.displayName = 'MarkdownRenderer';
 
 export default MarkdownRenderer;
