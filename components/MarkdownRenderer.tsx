@@ -62,14 +62,20 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
       }
       return `<td class="px-6 py-4 border border-slate-200 dark:border-slate-600">${content}</td>`;
     };
-    
+
     // 커스터마이징한 렌더러를 `marked`에 적용합니다.
     marked.setOptions({ renderer });
-    
+
     // 1. `marked.parse`: 마크다운 텍스트를 HTML로 변환합니다.
     const parsedHtml = marked.parse(content);
+
     // 2. `DOMPurify.sanitize`: 변환된 HTML에서 악성 스크립트 등을 제거하여 안전하게 만듭니다.
-    const cleanHtml = DOMPurify.sanitize(parsedHtml as string);
+    // KaTeX 수학 공식이 제대로 작동하도록 필요한 속성과 태그를 허용합니다.
+    const cleanHtml = DOMPurify.sanitize(parsedHtml as string, {
+      ADD_TAGS: ['span', 'annotation', 'semantics', 'mtext', 'mn', 'mo', 'mi', 'mspace', 'mrow', 'msqrt', 'mtable', 'mtr', 'mtd', 'math'],
+      ADD_ATTR: ['class', 'style', 'aria-hidden', 'xmlns']
+    });
+
     // 3. `setSanitizedContent`: 안전해진 HTML을 상태에 저장합니다. 이 상태 변경으로 인해 컴포넌트가 리렌더링됩니다.
     setSanitizedContent(cleanHtml);
   }, [content]); // `content` props가 변경될 때만 이 effect를 다시 실행합니다.
@@ -88,6 +94,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
         try {
             // KaTeX 라이브러리의 `renderMathInElement` 함수가 로드되었는지 확인합니다.
             if (window.renderMathInElement) {
+                console.log('🔍 KaTeX 렌더링 시작...');
                 // DOM 요소 안의 수학 공식(예: $E=mc^2$)을 찾아 렌더링합니다.
                 window.renderMathInElement(contentElement, {
                     delimiters: [
@@ -96,34 +103,48 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
                         {left: '\\(', right: '\\)', display: false},
                         {left: '\\[', right: '\\]', display: true}
                     ],
-                    throwOnError: false // 렌더링 오류가 발생해도 중단되지 않도록 설정합니다.
+                    throwOnError: false, // 렌더링 오류가 발생해도 중단되지 않도록 설정합니다.
+                    strict: false // 엄격 모드를 비활성화하여 다양한 수식 형식 허용
                 });
+                console.log('✅ KaTeX 렌더링 완료');
+                return true;
             }
+            return false;
         } catch (error) {
-            console.error('KaTeX 렌더링 오류:', error);
+            console.error('❌ KaTeX 렌더링 오류:', error);
+            return false;
         }
     };
 
     // KaTeX 라이브러리가 로드되었는지 100ms 간격으로 확인하는 함수 (폴링)
     const checkForKatex = () => {
         if (window.katex && window.renderMathInElement) {
+            console.log('✅ KaTeX 라이브러리 로드 확인됨');
             if (intervalId) clearInterval(intervalId);
             if (timeoutId) clearTimeout(timeoutId);
-            renderMath();
+
+            // DOM이 완전히 업데이트될 때까지 약간의 지연 추가
+            setTimeout(() => {
+                renderMath();
+            }, 50);
         }
     };
 
     // 즉시 확인하여 이미 로드되었는지 체크합니다.
+    console.log('🔎 KaTeX 로드 상태 확인 중...');
     checkForKatex();
+
     // 로드되지 않았다면, 100ms 간격으로 폴링을 시작합니다.
     intervalId = window.setInterval(checkForKatex, 100);
-    // 5초 후에도 로드되지 않으면 폴링을 중단하는 타임아웃을 설정합니다.
+
+    // 10초 후에도 로드되지 않으면 폴링을 중단하는 타임아웃을 설정합니다. (5초 -> 10초로 증가)
     timeoutId = window.setTimeout(() => {
         if(intervalId) clearInterval(intervalId);
         if (!window.katex || !window.renderMathInElement) {
-             console.error("KaTeX 라이브러리 로딩에 실패하여 수학 공식이 렌더링되지 않았습니다.");
+             console.error('❌ KaTeX 라이브러리 로딩에 실패하여 수학 공식이 렌더링되지 않았습니다.');
+             console.log('💡 페이지를 새로고침해주세요.');
         }
-    }, 5000);
+    }, 10000);
 
     // 컴포넌트가 언마운트되거나 `sanitizedContent`가 변경될 때 타이머를 정리(clean-up)합니다.
     // 이는 메모리 누수를 방지하는 중요한 과정입니다.
