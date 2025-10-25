@@ -33,7 +33,7 @@
     </script>
     
     <!-- KaTeX 라이브러리의 CSS 파일을 불러옵니다. 수학 공식을 예쁘게 표시하기 위해 필요합니다. -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0KOVEMea+sfyJc9cm-PShANidImBqD4mA2P2i3S6fAkyU2YpSveRI" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     
   <!-- 
     importmap을 사용하여 외부 라이브러리의 경로를 지정합니다. 
@@ -60,9 +60,9 @@
     <!-- 이 div가 React 애플리케이션이 그려질 캔버스(도화지)입니다. index.tsx 파일에서 이 'root' 요소를 찾아 앱을 렌더링합니다. -->
     <div id="root"></div>
     <!-- KaTeX 라이브러리를 먼저 로드합니다. React 앱이 렌더링되기 전에 KaTeX가 준비되도록 defer를 제거했습니다. -->
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlVwcpaN8sdkXoldQQkf+gTevGM+UaJxs0LAecHHiKlkLmqwGZcDCSI4LLan" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <!-- KaTeX의 auto-render 확장 기능을 불러옵니다. 페이지 내의 수학 공식을 자동으로 찾아 렌더링해줍니다. -->
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <!-- 우리 앱의 메인 JavaScript 파일(React 코드)을 불러옵니다. type="module"은 ES6 모듈 시스템을 사용한다는 의미입니다. -->
     <script type="module" src="/index.tsx"></script>
   </body>
