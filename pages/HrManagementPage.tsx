@@ -9,12 +9,13 @@ import { ALL_NAV_LINKS } from '../constants';
 import PageHeader from '../components/PageHeader';
 import EmployeeManagement from '../components/EmployeeManagement';
 import SettlementManagement from '../components/SettlementManagement';
+import MemberOptionsManager from '../components/MemberOptionsManager';
 import Loader from '../components/Loader';
 import type { Employee, Settlement } from '../types';
 import { employeeService, settlementService } from '../src/firebase/firestore-service';
 
 const HrManagementPage: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'employees' | 'settlements'>('employees');
+    const [activeTab, setActiveTab] = useState<'employees' | 'settlements' | 'settings'>('employees');
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [settlements, setSettlements] = useState<Settlement[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -65,6 +66,10 @@ const HrManagementPage: React.FC = () => {
     }, []);
 
     const renderContent = () => {
+        if (activeTab === 'settings') {
+            return <MemberOptionsManager />;
+        }
+
         if (isLoading) return <div className="flex justify-center items-center py-10"><Loader /></div>;
         if (error) return <div className="text-center py-10 text-red-500">데이터 로딩 실패: {error}</div>;
 
@@ -87,6 +92,7 @@ const HrManagementPage: React.FC = () => {
                 <nav className="-mb-px flex space-x-6" aria-label="Tabs">
                     <button onClick={() => setActiveTab('employees')} className={`${activeTab === 'employees' ? 'border-primary-500 text-primary-600' : 'border-transparent text-slate-500 hover:text-slate-700'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>구성원 목록</button>
                     <button onClick={() => setActiveTab('settlements')} className={`${activeTab === 'settlements' ? 'border-primary-500 text-primary-600' : 'border-transparent text-slate-500 hover:text-slate-700'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>정산 관리</button>
+                    <button onClick={() => setActiveTab('settings')} className={`${activeTab === 'settings' ? 'border-primary-500 text-primary-600' : 'border-transparent text-slate-500 hover:text-slate-700'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>구분/부서 설정</button>
                 </nav>
             </div>
             

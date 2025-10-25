@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import type { Employee } from '../types';
+import type { Employee, MemberOptionsSettings } from '../types';
 import { PencilSquareIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, SelectorIcon, ClipboardDocumentIcon, CheckIcon } from './Icons';
-import { employeeService } from '../src/firebase/firestore-service';
+import { employeeService, memberOptionsService } from '../src/firebase/firestore-service';
 
 // --- Helper & Sub-components ---
 
@@ -133,12 +133,34 @@ const TextAreaField: React.FC<{ label: string; name: string; value: string; onCh
     </div>
 );
 
-const EmployeeModal: React.FC<{ employee: Employee; onSave: (emp: Employee) => void; onClose: () => void; }> = ({ employee, onSave, onClose }) => {
-    const [formData, setFormData] = useState({...employee, role: employee.role.join(', ')});
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setFormData({ ...formData, [e.target.name]: e.target.value });
+const EmployeeModal: React.FC<{
+    employee: Employee;
+    onSave: (emp: Employee) => void;
+    onClose: () => void;
+    memberOptions: MemberOptionsSettings | null;
+}> = ({ employee, onSave, onClose, memberOptions }) => {
+    const [formData, setFormData] = useState({...employee});
+    const [selectedRoles, setSelectedRoles] = useState<string[]>(employee.role || []);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleRoleToggle = (role: string) => {
+        setSelectedRoles(prev =>
+            prev.includes(role)
+                ? prev.filter(r => r !== role)
+                : [...prev, role]
+        );
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave({ ...formData, role: formData.role.split(',').map(r => r.trim()).filter(Boolean) });
+        onSave({
+            ...formData,
+            role: selectedRoles,
+            isActive: formData.isActive !== undefined ? formData.isActive : true
+        });
     };
 
     return (
@@ -146,17 +168,93 @@ const EmployeeModal: React.FC<{ employee: Employee; onSave: (emp: Employee) => v
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <h2 className="text-2xl font-bold">{employee.id ? '구성원 정보 수정' : '새 구성원 추가'}</h2>
+
+                {/* 기본 정보 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InputField label="이름" name="name" value={formData.name} onChange={handleChange} required />
                     <InputField label="주민등록번호" name="residentRegistrationNumber" value={formData.residentRegistrationNumber} onChange={handleChange} />
-                    <InputField label="부서" name="department" value={formData.department} onChange={handleChange} />
-                    <InputField label="구분 (쉼표로 구분)" name="role" value={formData.role} onChange={handleChange} />
+                </div>
+
+                {/* 구분 (다중 선택) */}
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">구분 (중복 선택 가능)</label>
+                    <div className="space-y-3 p-4 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700">
+                        {memberOptions && Object.entries(memberOptions.roleCategories).map(([key, category]) => (
+                            <div key={key}>
+                                <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">{category.label}</div>
+                                <div className="flex flex-wrap gap-3">
+                                    {category.roles.map(role => (
+                                        <label key={role} className="flex items-center space-x-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedRoles.includes(role)}
+                                                onChange={() => handleRoleToggle(role)}
+                                                className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                                            />
+                                            <span className="text-sm">{role}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 부서/활동 */}
+                <div>
+                    <label htmlFor="department" className="block text-sm font-medium text-slate-700 dark:text-slate-300">부서/활동</label>
+                    <select
+                        id="department"
+                        name="department"
+                        value={formData.department}
+                        onChange={handleChange}
+                        className="mt-1 block w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700"
+                    >
+                        <option value="">선택하세요</option>
+                        {memberOptions && Object.entries(memberOptions.departmentCategories).map(([key, category]) => (
+                            <optgroup key={key} label={category.label}>
+                                {category.departments.map(dept => (
+                                    <option key={dept} value={dept}>{dept}</option>
+                                ))}
+                            </optgroup>
+                        ))}
+                    </select>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">또는 직접 입력할 수 있습니다</p>
+                    <input
+                        type="text"
+                        name="department"
+                        value={formData.department}
+                        onChange={handleChange}
+                        placeholder="직접 입력 (예: 건강지킴이 4기)"
+                        className="mt-2 block w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                    />
+                </div>
+
+                {/* 연락처 정보 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InputField label="이메일" name="email" type="email" value={formData.email} onChange={handleChange} />
                     <InputField label="전화번호" name="phone" type="tel" value={formData.phone} onChange={handleChange} />
+                </div>
+                <InputField label="주소" name="address" value={formData.address} onChange={handleChange} />
+
+                {/* 계좌 정보 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InputField label="은행" name="bankName" value={formData.bankName} onChange={handleChange} />
                     <InputField label="계좌번호" name="accountNumber" value={formData.accountNumber} onChange={handleChange} />
                 </div>
-                <InputField label="주소" name="address" value={formData.address} onChange={handleChange} />
+                <div>
+                    <label htmlFor="isActive" className="block text-sm font-medium text-slate-700 dark:text-slate-300">상태</label>
+                    <select
+                        id="isActive"
+                        name="isActive"
+                        value={formData.isActive === false ? 'false' : 'true'}
+                        onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'true' })}
+                        className="mt-1 block w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700"
+                    >
+                        <option value="true">활성</option>
+                        <option value="false">비활성</option>
+                    </select>
+                </div>
                 <TextAreaField label="기타 사항" name="notes" value={formData.notes} onChange={handleChange} />
                 <div className="flex justify-end space-x-2 pt-4">
                     <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 dark:bg-slate-600 rounded-md">취소</button>
@@ -185,7 +283,8 @@ const employeeTableColumns = [
 
 const EmployeeManagement: React.FC<{ initialEmployees: Employee[] }> = ({ initialEmployees }) => {
     const [employees, setEmployees] = useState<Employee[]>([]);
-    const [filters, setFilters] = useState<{ name: string[], role: string[], department: string[] }>({ name: [], role: [], department: [] });
+    const [memberOptions, setMemberOptions] = useState<MemberOptionsSettings | null>(null);
+    const [filters, setFilters] = useState<{ name: string[], role: string[], department: string[], status: string }>({ name: [], role: [], department: [], status: 'all' });
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
     const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(
         employeeTableColumns.reduce((acc, col) => ({ ...acc, [col.key]: col.defaultVisible }), {})
@@ -202,6 +301,19 @@ const EmployeeManagement: React.FC<{ initialEmployees: Employee[] }> = ({ initia
         setEmployees(initialEmployees);
     }, [initialEmployees]);
 
+    // Load member options from Firestore
+    useEffect(() => {
+        const unsubscribe = memberOptionsService.subscribe((data) => {
+            if (data.length > 0) {
+                const settingsData = data.find((d: any) => d.id === 'memberOptions');
+                if (settingsData) {
+                    setMemberOptions(settingsData as MemberOptionsSettings);
+                }
+            }
+        });
+        return () => unsubscribe();
+    }, []);
+
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (isColumnSelectorOpen && columnSelectorRef.current && !columnSelectorRef.current.contains(event.target as Node)) {
@@ -214,7 +326,7 @@ const EmployeeManagement: React.FC<{ initialEmployees: Employee[] }> = ({ initia
 
     const filteredAndSortedEmployees = useMemo(() => {
         let filtered = [...employees];
-        
+
         if (filters.name.length > 0) {
             filtered = filtered.filter(e => filters.name.some(name => e.name.toLowerCase().includes(name.toLowerCase())));
         }
@@ -223,6 +335,12 @@ const EmployeeManagement: React.FC<{ initialEmployees: Employee[] }> = ({ initia
         }
         if (filters.role.length > 0) {
             filtered = filtered.filter(e => filters.role.some(role => e.role.includes(role)));
+        }
+        // 재직 상태 필터
+        if (filters.status === 'active') {
+            filtered = filtered.filter(e => e.isActive !== false); // undefined 또는 true인 경우
+        } else if (filters.status === 'inactive') {
+            filtered = filtered.filter(e => e.isActive === false);
         }
 
         if (sortConfig) {
@@ -361,10 +479,21 @@ const EmployeeManagement: React.FC<{ initialEmployees: Employee[] }> = ({ initia
                 <h3 className="text-xl font-semibold">구성원 목록</h3>
                 <button onClick={handleAddNew} className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">새 구성원 추가</button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 <MultiSelectCombobox options={unique('name')} selected={filters.name} onChange={v => setFilters(f => ({...f, name: v}))} placeholder="이름 검색..." />
                 <MultiSelectCombobox options={unique('role')} selected={filters.role} onChange={v => setFilters(f => ({...f, role: v}))} placeholder="구분 검색..." />
                 <MultiSelectCombobox options={unique('department')} selected={filters.department} onChange={v => setFilters(f => ({...f, department: v}))} placeholder="부서 검색..." />
+                <div>
+                    <select
+                        value={filters.status}
+                        onChange={e => setFilters(f => ({...f, status: e.target.value}))}
+                        className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700"
+                    >
+                        <option value="all">전체</option>
+                        <option value="active">활성</option>
+                        <option value="inactive">비활성</option>
+                    </select>
+                </div>
             </div>
             <div className="flex flex-wrap items-center justify-end mb-4 gap-2">
                 <div className="relative" ref={columnSelectorRef}>
@@ -440,7 +569,7 @@ const EmployeeManagement: React.FC<{ initialEmployees: Employee[] }> = ({ initia
                  )}
             </div>
             {isModalOpen && editingItem && (
-                <EmployeeModal employee={editingItem} onSave={handleSave} onClose={() => setIsModalOpen(false)} />
+                <EmployeeModal employee={editingItem} onSave={handleSave} onClose={() => setIsModalOpen(false)} memberOptions={memberOptions} />
             )}
         </div>
     );

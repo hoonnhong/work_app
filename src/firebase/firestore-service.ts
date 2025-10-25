@@ -14,7 +14,7 @@ import {
   DocumentData
 } from 'firebase/firestore';
 import { db } from './config';
-import type { Employee, Settlement, DevNote, FavoriteLink } from '../../types';
+import type { Member, Employee, Settlement, DevNote, FavoriteLink, MemberOptionsSettings } from '../../types';
 
 // Generic Firestore CRUD operations
 export class FirestoreService<T extends { id?: number | string }> {
@@ -128,7 +128,8 @@ export class FirestoreService<T extends { id?: number | string }> {
 }
 
 // Specific services for each collection
-export const employeeService = new FirestoreService<Employee>('employees');
+export const memberService = new FirestoreService<Member>('members');
+export const employeeService = memberService; // 하위 호환성을 위한 별칭
 export const settlementService = new FirestoreService<Settlement>('settlements');
 export const devNoteService = new FirestoreService<DevNote>('dev_notes');
 export const favoriteUrlService = new FirestoreService<FavoriteLink>('favorite_urls');
@@ -140,3 +141,6 @@ export interface Prompt {
 }
 
 export const promptService = new FirestoreService<Prompt>('prompts');
+
+// Member options service (for managing role and department options)
+export const memberOptionsService = new FirestoreService<MemberOptionsSettings>('settings');

@@ -8,7 +8,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "migrate": "node scripts/migrate-to-firestore.js",
-    "add-created-at": "node scripts/add-created-at.js"
+    "add-created-at": "node scripts/add-created-at.js",
+    "add-is-active": "node scripts/add-is-active.js",
+    "migrate:employees-to-members": "node scripts/migrate-employees-to-members.js",
+    "migrate:member-options": "node scripts/migrate-member-options.js"
   },
   "dependencies": {
     "@google/genai": "^1.25.0",
