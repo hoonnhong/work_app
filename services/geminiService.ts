@@ -10,17 +10,27 @@
 // Gemini API 클라이언트와 필요한 타입들을 가져옵니다.
 import { GoogleGenAI, Type } from "@google/genai";
 import type { RefinedTextResult, SpellCheckResult, NewsArticle, GeneratedPrompt } from '../types';
- 
-// Vite 환경 변수에서 API 키를 가져옵니다.
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
- 
-// API 키가 없는 경우 에러를 발생시켜 개발자가 문제를 즉시 인지할 수 있도록 합니다.
-if (!apiKey) {
-  throw new Error("VITE_GEMINI_API_KEY 환경 변수가 설정되지 않았습니다. .env 파일을 확인해주세요.");
+
+// API 클라이언트를 지연 초기화(lazy initialization)합니다.
+// 이렇게 하면 빌드 시점이 아닌 실제 사용 시점에 환경 변수를 확인하므로
+// Netlify 등에서 빌드할 때 에러가 발생하지 않습니다.
+let ai: GoogleGenAI | null = null;
+
+function getAIClient(): GoogleGenAI {
+  if (!ai) {
+    // Vite 환경 변수에서 API 키를 가져옵니다.
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+    // API 키가 없는 경우 에러를 발생시켜 개발자가 문제를 즉시 인지할 수 있도록 합니다.
+    if (!apiKey) {
+      throw new Error("VITE_GEMINI_API_KEY 환경 변수가 설정되지 않았습니다. Netlify 환경 변수 설정을 확인해주세요.");
+    }
+
+    // API 클라이언트를 초기화합니다.
+    ai = new GoogleGenAI({ apiKey });
+  }
+  return ai;
 }
- 
-// API 클라이언트를 초기화합니다.
-const ai = new GoogleGenAI({ apiKey });
 
 /**
  * 주어진 프롬프트를 실행하고, AI의 응답을 JSON 객체로 파싱하는 범용 헬퍼 함수입니다.
@@ -30,8 +40,8 @@ const ai = new GoogleGenAI({ apiKey });
  * @returns AI 응답을 파싱한 Promise<T>
  */
 async function runJsonPrompt<T>(prompt: string, model: string, schema?: any): Promise<T> {
-  // `ai.models.generateContent`를 사용하여 Gemini API에 요청을 보냅니다.
-  const response = await ai.models.generateContent({
+  // `getAIClient().models.generateContent`를 사용하여 Gemini API에 요청을 보냅니다.
+  const response = await getAIClient().models.generateContent({
     model,      // 사용할 AI 모델
     contents: prompt, // AI에게 전달할 프롬프트 내용
     config: {
@@ -61,7 +71,7 @@ async function runJsonPrompt<T>(prompt: string, model: string, schema?: any): Pr
  * @returns AI가 생성한 텍스트 문자열을 담은 Promise<string>
  */
 async function runTextPrompt(prompt: string, model: string): Promise<string> {
-  const response = await ai.models.generateContent({
+  const response = await getAIClient().models.generateContent({
     model,
     contents: prompt,
   });
