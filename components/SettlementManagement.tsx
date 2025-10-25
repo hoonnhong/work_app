@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { Settlement, EmployeeSettlement, ClientSettlement, ActivitySettlement } from '../types';
 import { PencilSquareIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, SelectorIcon, ClipboardDocumentIcon, CheckIcon } from './Icons';
+import { settlementService } from '../src/firebase/firestore-service';
 
 
 // --- Helper & Sub-components ---
@@ -264,7 +265,7 @@ const settlementTableColumns = [
 // --- Main Component ---
 
 const SettlementManagement: React.FC<{ initialSettlements: Settlement[] }> = ({ initialSettlements }) => {
-    const [settlements, setSettlements] = useState<Settlement[]>(initialSettlements);
+    const [settlements, setSettlements] = useState<Settlement[]>([]);
     const [filters, setFilters] = useState<{ date: string[], name: string[], category: string[], settlementType: string[] }>({ date: [], name: [], category: [], settlementType: [] });
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'date', direction: 'desc' });
     const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(
@@ -276,6 +277,11 @@ const SettlementManagement: React.FC<{ initialSettlements: Settlement[] }> = ({ 
     const [isCopying, setIsCopying] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<Settlement | null>(null);
+
+    // Firestore 구독: initialSettlements가 변경될 때마다 업데이트
+    useEffect(() => {
+        setSettlements(initialSettlements);
+    }, [initialSettlements]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -384,16 +390,33 @@ const SettlementManagement: React.FC<{ initialSettlements: Settlement[] }> = ({ 
         setIsModalOpen(true);
     };
     
-    const handleDelete = (id: number) => {
+    const handleDelete = async (id: number) => {
         if(window.confirm('정말로 삭제하시겠습니까?')) {
-            setSettlements(prev => prev.filter(s => s.id !== id));
+            try {
+                await settlementService.delete(String(id));
+            } catch (error) {
+                console.error('Failed to delete settlement:', error);
+                alert('정산 삭제에 실패했습니다.');
+            }
         }
     };
-    
-    const handleSave = (item: Settlement) => {
-        setSettlements(prev => item.id ? prev.map(s => s.id === item.id ? item : s) : [{...item, id: Date.now()}, ...prev]);
-        setIsModalOpen(false);
-        setEditingItem(null);
+
+    const handleSave = async (item: Settlement) => {
+        try {
+            if (item.id) {
+                // 업데이트
+                await settlementService.update(String(item.id), item);
+            } else {
+                // 새로 추가
+                const newId = Date.now();
+                await settlementService.setWithId(String(newId), { ...item, id: newId });
+            }
+            setIsModalOpen(false);
+            setEditingItem(null);
+        } catch (error) {
+            console.error('Failed to save settlement:', error);
+            alert('정산 저장에 실패했습니다.');
+        }
     };
 
     const handleCopy = (text: string, type: string) => {

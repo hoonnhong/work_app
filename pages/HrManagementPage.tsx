@@ -11,6 +11,7 @@ import EmployeeManagement from '../components/EmployeeManagement';
 import SettlementManagement from '../components/SettlementManagement';
 import Loader from '../components/Loader';
 import type { Employee, Settlement } from '../types';
+import { employeeService, settlementService } from '../src/firebase/firestore-service';
 
 const HrManagementPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'employees' | 'settlements'>('employees');
@@ -19,35 +20,48 @@ const HrManagementPage: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // 데이터 로딩 로직
+    // Firestore 실시간 데이터 구독
     useEffect(() => {
-        const initializeData = async () => {
-            setIsLoading(true);
-            setError(null);
+        setIsLoading(true);
+        setError(null);
+
+        // 구성원 데이터 구독
+        const unsubscribeEmployees = employeeService.subscribe(
+            (data) => {
+                setEmployees(data);
+                setIsLoading(false);
+            }
+        );
+
+        // 정산 데이터 구독
+        const unsubscribeSettlements = settlementService.subscribe(
+            (data) => {
+                setSettlements(data);
+            }
+        );
+
+        // 에러 핸들링을 위한 초기 데이터 로드
+        const loadInitialData = async () => {
             try {
-                const [empResponse, settleResponse] = await Promise.all([
-                    fetch('./data/hr_management.json'),
-                    fetch('./data/settlements.json')
+                await Promise.all([
+                    employeeService.getAll(),
+                    settlementService.getAll()
                 ]);
-                if (!empResponse.ok) throw new Error('Failed to fetch HR data');
-                if (!settleResponse.ok) throw new Error('Failed to fetch settlement data');
-                
-                const empData = await empResponse.json();
-                const settleData = await settleResponse.json();
-                
-                setEmployees(empData);
-                setSettlements(settleData);
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'Unknown error occurred';
                 console.error("Failed to load HR data:", message);
                 setError(message);
-                setEmployees([]);
-                setSettlements([]);
-            } finally {
                 setIsLoading(false);
             }
         };
-        initializeData();
+
+        loadInitialData();
+
+        // 컴포넌트 언마운트 시 구독 해제
+        return () => {
+            unsubscribeEmployees();
+            unsubscribeSettlements();
+        };
     }, []);
 
     const renderContent = () => {

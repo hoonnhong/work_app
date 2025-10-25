@@ -13,6 +13,7 @@ import PageHeader from '../components/PageHeader'; // 페이지 상단 제목 �
 import type { DevNote } from '../types'; // DevNote 데이터 타입
 import { PencilSquareIcon, TrashIcon } from '../components/Icons'; // 수정, 삭제 아이콘
 import Loader from '../components/Loader'; // 로딩 스피너
+import { devNoteService } from '../src/firebase/firestore-service';
 
 // DevNotesPage 컴포넌트를 정의합니다.
 const DevNotesPage: React.FC = () => {
@@ -26,29 +27,21 @@ const DevNotesPage: React.FC = () => {
   // 4. `editingNote`: 현재 수정 중인 노트 정보를 저장합니다.
   const [editingNote, setEditingNote] = useState<DevNote | null>(null);
   
-  // `useEffect` 훅을 사용하여 컴포넌트가 처음 렌더링될 때 JSON 파일에서 노트 데이터를 불러옵니다.
+  // Firestore 실시간 데이터 구독
   useEffect(() => {
-    // 노트 데이터를 초기화하는 비동기 함수입니다.
-    const initializeNotes = async () => {
-      setIsLoading(true); // 로딩 시작
-      try {
-        // fetch API를 사용하여 public 폴더의 dev_note.json 파일을 가져옵니다.
-        const response = await fetch('./data/dev_note.json');
-        if (!response.ok) {
-          throw new Error(`Failed to fetch dev_note.json: ${response.statusText}`);
-        }
-        const defaultNotes = await response.json(); // JSON 데이터를 JavaScript 객체로 변환
-        setNotes(defaultNotes); // 불러온 데이터를 `notes` 상태에 저장
-      } catch (error) {
-        console.error("Failed to initialize notes:", error);
-        setNotes([]); // 에러 발생 시 빈 배열로 설정
-      } finally {
-        setIsLoading(false); // 로딩 완료
-      }
-    };
+    setIsLoading(true);
 
-    initializeNotes(); // 함수 실행
-  }, []); // 의존성 배열이 비어있으므로, 컴포넌트가 처음 마운트될 때 한 번만 실행됩니다.
+    // 개발 노트 데이터 실시간 구독
+    const unsubscribe = devNoteService.subscribe((data) => {
+      setNotes(data);
+      setIsLoading(false);
+    });
+
+    // 컴포넌트 언마운트 시 구독 해제
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   // '수정' 아이콘 클릭 시 실행될 함수입니다.
   const handleEdit = (note: DevNote) => {
@@ -57,29 +50,38 @@ const DevNotesPage: React.FC = () => {
   };
   
   // '삭제' 아이콘 클릭 시 실행될 함수입니다.
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     if (window.confirm('이 노트를 정말로 삭제하시겠습니까?')) {
-        // 삭제할 노트를 제외한 나머지 노트들로 새 배열을 만들어 상태를 업데이트합니다.
-        setNotes(notes.filter(note => note.id !== id));
+      try {
+        await devNoteService.delete(String(id));
+      } catch (error) {
+        console.error('Failed to delete note:', error);
+        alert('노트 삭제에 실패했습니다.');
+      }
     }
   };
 
   // 모달에서 '저장' 버튼 클릭 시 실행될 함수입니다.
-  const handleSave = (note: DevNote) => {
-    if (note.id) { // 노트 ID가 있으면 (기존 노트 수정)
-      // `map`을 사용하여 ID가 일치하는 노트만 새 정보로 교체합니다.
-      setNotes(notes.map(n => n.id === note.id ? note : n));
-    } else { // 노트 ID가 없으면 (새 노트 추가)
-      const newNote = {
-        ...note,
-        id: Date.now(), // 현재 시간을 고유 ID로 사용
-        created_at: new Date().toISOString().split('T')[0] // 오늘 날짜를 생성일로 지정
-      };
-      // 새 노트를 기존 노트 목록의 맨 앞에 추가합니다.
-      setNotes([newNote, ...notes]);
+  const handleSave = async (note: DevNote) => {
+    try {
+      if (note.id) {
+        // 기존 노트 수정
+        await devNoteService.update(String(note.id), note);
+      } else {
+        // 새 노트 추가
+        const newNote = {
+          ...note,
+          id: Date.now(),
+          created_at: new Date().toISOString().split('T')[0]
+        };
+        await devNoteService.setWithId(String(newNote.id), newNote);
+      }
+      setIsModalOpen(false);
+      setEditingNote(null);
+    } catch (error) {
+      console.error('Failed to save note:', error);
+      alert('노트 저장에 실패했습니다.');
     }
-    setIsModalOpen(false); // 모달 닫기
-    setEditingNote(null); // 수정 중인 노트 정보 초기화
   };
 
   // '새 노트 추가' 버튼 클릭 시 실행될 함수입니다.

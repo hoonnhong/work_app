@@ -13,6 +13,7 @@ import PageHeader from '../components/PageHeader'; // 페이지 상단 제목 �
 import type { FavoriteLink } from '../types'; // FavoriteLink 데이터 타입
 import { PencilSquareIcon, TrashIcon } from '../components/Icons'; // 수정, 삭제 아이콘
 import Loader from '../components/Loader'; // 로딩 스피너
+import { favoriteUrlService } from '../src/firebase/firestore-service';
 
 // FavoriteLinksPage 컴포넌트를 정의합니다.
 const FavoriteLinksPage: React.FC = () => {
@@ -26,25 +27,20 @@ const FavoriteLinksPage: React.FC = () => {
     // 4. `editingLink`: 현재 수정 중인 링크 정보를 저장합니다.
     const [editingLink, setEditingLink] = useState<FavoriteLink | null>(null);
 
-    // `useEffect` 훅을 사용하여 컴포넌트가 처음 렌더링될 때 JSON 파일에서 링크 데이터를 불러옵니다.
+    // Firestore 실시간 데이터 구독
     useEffect(() => {
-        const initializeLinks = async () => {
-            setIsLoading(true);
-            try {
-                const response = await fetch('./data/favorite_url.json');
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch favorite_url.json: ${response.statusText}`);
-                }
-                const defaultLinks = await response.json();
-                setLinks(defaultLinks);
-            } catch (error) {
-                console.error("Failed to initialize links:", error);
-                setLinks([]);
-            } finally {
-                setIsLoading(false);
-            }
+        setIsLoading(true);
+
+        // 즐겨찾기 링크 데이터 실시간 구독
+        const unsubscribe = favoriteUrlService.subscribe((data) => {
+            setLinks(data);
+            setIsLoading(false);
+        });
+
+        // 컴포넌트 언마운트 시 구독 해제
+        return () => {
+            unsubscribe();
         };
-        initializeLinks();
     }, []);
     
     // `useMemo` 훅은 `links` 배열이 변경될 때만 링크들을 카테고리별로 다시 그룹핑합니다.
@@ -72,21 +68,34 @@ const FavoriteLinksPage: React.FC = () => {
     };
 
     // '삭제' 아이콘 클릭 시 실행될 함수입니다.
-    const handleDelete = (id: number) => {
+    const handleDelete = async (id: number) => {
         if (window.confirm('이 링크를 정말로 삭제하시겠습니까?')) {
-            setLinks(links.filter(link => link.id !== id));
+            try {
+                await favoriteUrlService.delete(String(id));
+            } catch (error) {
+                console.error('Failed to delete link:', error);
+                alert('링크 삭제에 실패했습니다.');
+            }
         }
     };
 
     // 모달에서 '저장' 버튼 클릭 시 실행될 함수입니다.
-    const handleSave = (link: FavoriteLink) => {
-        if (link.id) { // ID가 있으면 기존 링크 수정
-            setLinks(links.map(l => l.id === link.id ? link : l));
-        } else { // ID가 없으면 새 링크 추가
-            setLinks([...links, { ...link, id: Date.now() }]);
+    const handleSave = async (link: FavoriteLink) => {
+        try {
+            if (link.id) {
+                // 기존 링크 수정
+                await favoriteUrlService.update(String(link.id), link);
+            } else {
+                // 새 링크 추가
+                const newId = Date.now();
+                await favoriteUrlService.setWithId(String(newId), { ...link, id: newId });
+            }
+            setIsModalOpen(false);
+            setEditingLink(null);
+        } catch (error) {
+            console.error('Failed to save link:', error);
+            alert('링크 저장에 실패했습니다.');
         }
-        setIsModalOpen(false);
-        setEditingLink(null);
     };
 
     // '새 링크 추가' 버튼 클릭 시 실행될 함수입니다.

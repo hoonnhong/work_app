@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { Employee } from '../types';
 import { PencilSquareIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, SelectorIcon, ClipboardDocumentIcon, CheckIcon } from './Icons';
+import { employeeService } from '../src/firebase/firestore-service';
 
 // --- Helper & Sub-components ---
 
@@ -183,7 +184,7 @@ const employeeTableColumns = [
 // --- Main Component ---
 
 const EmployeeManagement: React.FC<{ initialEmployees: Employee[] }> = ({ initialEmployees }) => {
-    const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
+    const [employees, setEmployees] = useState<Employee[]>([]);
     const [filters, setFilters] = useState<{ name: string[], role: string[], department: string[] }>({ name: [], role: [], department: [] });
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
     const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(
@@ -195,6 +196,11 @@ const EmployeeManagement: React.FC<{ initialEmployees: Employee[] }> = ({ initia
     const [isCopying, setIsCopying] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<Employee | null>(null);
+
+    // Firestore 구독: initialEmployees가 변경될 때마다 업데이트
+    useEffect(() => {
+        setEmployees(initialEmployees);
+    }, [initialEmployees]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -254,16 +260,33 @@ const EmployeeManagement: React.FC<{ initialEmployees: Employee[] }> = ({ initia
         setIsModalOpen(true);
     };
     
-    const handleDelete = (id: number) => {
+    const handleDelete = async (id: number) => {
         if(window.confirm('정말로 삭제하시겠습니까?')) {
-            setEmployees(prev => prev.filter(e => e.id !== id));
+            try {
+                await employeeService.delete(String(id));
+            } catch (error) {
+                console.error('Failed to delete employee:', error);
+                alert('구성원 삭제에 실패했습니다.');
+            }
         }
     };
-    
-    const handleSave = (item: Employee) => {
-        setEmployees(prev => item.id ? prev.map(e => e.id === item.id ? item : e) : [{...item, id: Date.now()}, ...prev]);
-        setIsModalOpen(false);
-        setEditingItem(null);
+
+    const handleSave = async (item: Employee) => {
+        try {
+            if (item.id) {
+                // 업데이트
+                await employeeService.update(String(item.id), item);
+            } else {
+                // 새로 추가
+                const newId = Date.now();
+                await employeeService.setWithId(String(newId), { ...item, id: newId });
+            }
+            setIsModalOpen(false);
+            setEditingItem(null);
+        } catch (error) {
+            console.error('Failed to save employee:', error);
+            alert('구성원 저장에 실패했습니다.');
+        }
     };
 
     const handleCopy = (text: string, type: string) => {

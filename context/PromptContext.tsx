@@ -9,6 +9,7 @@
 
 // React와 필요한 기능들을 가져옵니다.
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { promptService } from '../src/firebase/firestore-service';
 
 // 앱에서 사용되는 모든 프롬프트들의 타입을 정의합니다.
 // 새로운 AI 기능이 추가되면 여기에 해당 프롬프트의 키(key)를 추가해야 합니다.
@@ -51,48 +52,72 @@ export const PromptProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [prompts, setPrompts] = useState<Prompts>({} as Prompts);
   const [isLoading, setIsLoading] = useState(true);
 
-  // `useEffect` 훅은 컴포넌트가 처음 렌더링될 때 한 번만 실행되어 프롬프트를 초기화합니다.
+  // Firestore 실시간 데이터 구독
   useEffect(() => {
-    // 프롬프트를 불러오는 비동기 함수
-    const loadPrompts = async () => {
-      setIsLoading(true);
+    setIsLoading(true);
+
+    // Firestore에서 프롬프트 데이터 실시간 구독
+    const unsubscribe = promptService.subscribe(async (data) => {
       try {
-        // 1. localStorage에 저장된 프롬프트가 있는지 확인합니다.
-        const savedPrompts = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (savedPrompts) {
-          // 저장된 값이 있으면 그것을 파싱하여 상태로 설정합니다. (데이터 영속성)
-          setPrompts(JSON.parse(savedPrompts));
+        if (data.length > 0) {
+          // Firestore에 데이터가 있으면 첫 번째 문서를 프롬프트로 사용
+          const firestorePrompts = data[0] as any;
+          // id 필드 제거 후 Prompts 타입으로 변환
+          const { id, ...promptsData } = firestorePrompts;
+          setPrompts(promptsData as Prompts);
+          // localStorage에도 저장 (백업 및 오프라인 지원)
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(promptsData));
         } else {
-          // 저장된 값이 없으면, public 폴더의 기본 프롬프트 JSON 파일을 불러옵니다.
-          const response = await fetch('./data/prompts.json');
-          if (!response.ok) {
-            throw new Error(`Failed to fetch prompts.json: ${response.statusText}`);
+          // Firestore에 데이터가 없으면 localStorage 또는 기본 파일에서 로드
+          const savedPrompts = localStorage.getItem(LOCAL_STORAGE_KEY);
+          if (savedPrompts) {
+            const parsedPrompts = JSON.parse(savedPrompts);
+            setPrompts(parsedPrompts);
+            // Firestore에도 저장
+            await promptService.setWithId('default', parsedPrompts);
+          } else {
+            // 기본 프롬프트 JSON 파일에서 로드
+            const response = await fetch('./data/prompts.json');
+            if (!response.ok) {
+              throw new Error(`Failed to fetch prompts.json: ${response.statusText}`);
+            }
+            const defaultPrompts = await response.json();
+            setPrompts(defaultPrompts);
+            // Firestore와 localStorage에 저장
+            await promptService.setWithId('default', defaultPrompts);
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(defaultPrompts));
           }
-          const defaultPrompts = await response.json();
-          setPrompts(defaultPrompts);
         }
       } catch (error) {
         console.error("프롬프트 로딩 실패:", error);
-        // 에러 발생 시 빈 객체로 설정하여 앱이 멈추지 않도록 합니다.
         setPrompts({} as Prompts);
       } finally {
-        // 로딩이 성공하든 실패하든, 로딩 상태를 false로 변경합니다.
         setIsLoading(false);
       }
-    };
+    });
 
-    loadPrompts();
-  }, []); // 의존성 배열이 비어있으므로, 이 `useEffect`는 컴포넌트가 처음 마운트될 때 한 번만 실행됩니다.
+    // 컴포넌트 언마운트 시 구독 해제
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   // 프롬프트를 저장하는 함수입니다. `useCallback`으로 감싸 불필요한 재생성을 방지하여 성능을 최적화합니다.
-  const savePrompts = useCallback((newPrompts: Prompts) => {
+  const savePrompts = useCallback(async (newPrompts: Prompts) => {
     try {
-      // 1. 새로운 프롬프트 데이터를 JSON 문자열로 변환하여 localStorage에 저장합니다.
+      // 1. Firestore에 저장 (실시간 구독을 통해 자동으로 상태 업데이트됨)
+      await promptService.setWithId('default', newPrompts);
+      // 2. localStorage에도 저장 (백업 및 오프라인 지원)
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newPrompts));
-      // 2. 컴포넌트의 상태(state)도 업데이트하여 화면에 즉시 반영되도록 합니다.
-      setPrompts(newPrompts);
     } catch (error) {
-      console.error("localStorage에 프롬프트 저장 실패:", error);
+      console.error("프롬프트 저장 실패:", error);
+      // Firestore 저장 실패 시 최소한 localStorage에 저장 시도
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newPrompts));
+        setPrompts(newPrompts);
+      } catch (localError) {
+        console.error("localStorage 저장도 실패:", localError);
+      }
     }
   }, []);
 
