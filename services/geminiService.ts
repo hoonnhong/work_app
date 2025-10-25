@@ -111,8 +111,10 @@ export const findWordsForDescription = async (description: string, customPrompt:
 };
 
 // [AI 계산기]
-export const calculateExpression = async (expression: string, customPrompt: string, model: string): Promise<string> => {
-  const prompt = customPrompt.replace('{expression}', expression);
+export const calculateExpression = async (expression: string, customPrompt: string | undefined | null, model: string): Promise<string> => {
+  // customPrompt가 undefined 또는 null일 경우 기본 프롬프트를 사용합니다.
+  const effectivePrompt = customPrompt ?? "다음 수식을 계산해줘: {expression}";
+  const prompt = effectivePrompt.replace('{expression}', expression);
   return runTextPrompt(prompt, model);
 };
 
