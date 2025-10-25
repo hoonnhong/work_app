@@ -37,34 +37,34 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
   useEffect(() => {
     // LaTeX 수식을 마크다운 파싱으로부터 보호하는 함수
     // marked가 $...$를 잘못 처리하는 것을 방지하기 위해 임시 플레이스홀더로 변환합니다.
-    const protectMath = (text: string): { protected: string; mathExpressions: string[] } => {
+    const protectMath = (text: string): { protectedText: string; mathExpressions: string[] } => {
       const mathExpressions: string[] = [];
-      let protected = text;
+      let protectedText = text;
 
       // Display math 보호 ($$...$$) - 먼저 처리해야 $$가 두 개의 $로 인식되는 것을 방지
-      protected = protected.replace(/\$\$([\s\S]+?)\$\$/g, (match) => {
+      protectedText = protectedText.replace(/\$\$([\s\S]+?)\$\$/g, (match) => {
         mathExpressions.push(match);
         return `___MATH_BLOCK_${mathExpressions.length - 1}___`;
       });
 
       // Inline math 보호 ($...$)
-      protected = protected.replace(/\$([^\$\n]+?)\$/g, (match) => {
+      protectedText = protectedText.replace(/\$([^\$\n]+?)\$/g, (match) => {
         mathExpressions.push(match);
         return `___MATH_INLINE_${mathExpressions.length - 1}___`;
       });
 
       // LaTeX 괄호 스타일도 보호 \[...\] 및 \(...\)
-      protected = protected.replace(/\\\[([\s\S]+?)\\\]/g, (match) => {
+      protectedText = protectedText.replace(/\\\[([\s\S]+?)\\\]/g, (match) => {
         mathExpressions.push(match);
         return `___MATH_BRACKET_BLOCK_${mathExpressions.length - 1}___`;
       });
 
-      protected = protected.replace(/\\\(([^\)]+?)\\\)/g, (match) => {
+      protectedText = protectedText.replace(/\\\(([^\)]+?)\\\)/g, (match) => {
         mathExpressions.push(match);
         return `___MATH_BRACKET_INLINE_${mathExpressions.length - 1}___`;
       });
 
-      return { protected, mathExpressions };
+      return { protectedText, mathExpressions };
     };
 
     // 보호된 수식을 복원하는 함수
@@ -81,7 +81,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
     };
 
     // 1. 수식 보호: 마크다운 파싱 전에 LaTeX 수식을 플레이스홀더로 변환
-    const { protected: protectedContent, mathExpressions } = protectMath(content);
+    const { protectedText: protectedContent, mathExpressions } = protectMath(content);
 
     // marked 라이브러리의 렌더러를 커스터마이징하여 테이블에 Tailwind CSS 클래스를 추가합니다.
     const renderer = new marked.Renderer() as any;
