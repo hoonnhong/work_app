@@ -10,10 +10,17 @@
 // Gemini API 클라이언트와 필요한 타입들을 가져옵니다.
 import { GoogleGenAI, Type } from "@google/genai";
 import type { RefinedTextResult, SpellCheckResult, NewsArticle, GeneratedPrompt } from '../types';
-
-// API 클라이언트를 초기화합니다. API 키는 환경 변수(`process.env.API_KEY`)에서 자동으로 주입됩니다.
-// 이 코드는 AI Studio와 같은 특정 환경에서 실행되는 것을 가정하며, 해당 환경이 API 키를 제공합니다.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+ 
+// Vite 환경 변수에서 API 키를 가져옵니다.
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+ 
+// API 키가 없는 경우 에러를 발생시켜 개발자가 문제를 즉시 인지할 수 있도록 합니다.
+if (!apiKey) {
+  throw new Error("VITE_GEMINI_API_KEY 환경 변수가 설정되지 않았습니다. .env 파일을 확인해주세요.");
+}
+ 
+// API 클라이언트를 초기화합니다.
+const ai = new GoogleGenAI({ apiKey });
 
 /**
  * 주어진 프롬프트를 실행하고, AI의 응답을 JSON 객체로 파싱하는 범용 헬퍼 함수입니다.

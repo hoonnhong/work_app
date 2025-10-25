@@ -50,15 +50,15 @@ const AiCalculatorPage: React.FC = () => {
     if (!data) return { result: null, explanation: null }; // 데이터가 없으면 null 반환
     
     // 정규 표현식을 사용하여 응답 텍스트에서 '결과:'와 '풀이:' 부분을 찾습니다.
-    const resultMatch = data.match(/결과:([\s\S]*?)(풀이:|$)/);
+    const resultMatch = data.match(/결과:([^\n]*)/);
     const explanationMatch = data.match(/풀이:([\s\S]*)/);
     
     // 찾은 텍스트의 앞뒤 공백을 제거합니다.
-    const resultText = resultMatch ? resultMatch[1].trim() : data;
+    const resultText = resultMatch ? resultMatch[1].trim() : null;
     const explanationText = explanationMatch ? explanationMatch[1].trim() : null;
 
     // 만약 '결과'나 '풀이' 패턴을 찾지 못했다면, 전체 응답을 결과로 간주합니다.
-    if (!resultMatch && !explanationMatch) {
+    if (!resultText && !explanationText) {
       return { result: data, explanation: null };
     }
 
