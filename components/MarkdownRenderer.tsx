@@ -37,6 +37,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
   useEffect(() => {
     // LaTeX 수식을 마크다운 파싱으로부터 보호하는 함수
     // marked가 $...$를 잘못 처리하는 것을 방지하기 위해 임시 플레이스홀더로 변환합니다.
+    // 플레이스홀더는 §§...§§ 형식을 사용하여 마크다운이 건드리지 않도록 합니다.
     const protectMath = (text: string): { protectedText: string; mathExpressions: string[] } => {
       const mathExpressions: string[] = [];
       let protectedText = text;
@@ -44,24 +45,24 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
       // Display math 보호 ($$...$$) - 먼저 처리해야 $$가 두 개의 $로 인식되는 것을 방지
       protectedText = protectedText.replace(/\$\$([\s\S]+?)\$\$/g, (match) => {
         mathExpressions.push(match);
-        return `___MATH_BLOCK_${mathExpressions.length - 1}___`;
+        return `§§MATHBLOCK${mathExpressions.length - 1}§§`;
       });
 
       // Inline math 보호 ($...$)
       protectedText = protectedText.replace(/\$([^\$\n]+?)\$/g, (match) => {
         mathExpressions.push(match);
-        return `___MATH_INLINE_${mathExpressions.length - 1}___`;
+        return `§§MATHINLINE${mathExpressions.length - 1}§§`;
       });
 
       // LaTeX 괄호 스타일도 보호 \[...\] 및 \(...\)
       protectedText = protectedText.replace(/\\\[([\s\S]+?)\\\]/g, (match) => {
         mathExpressions.push(match);
-        return `___MATH_BRACKET_BLOCK_${mathExpressions.length - 1}___`;
+        return `§§MATHBRACKETBLOCK${mathExpressions.length - 1}§§`;
       });
 
       protectedText = protectedText.replace(/\\\(([^\)]+?)\\\)/g, (match) => {
         mathExpressions.push(match);
-        return `___MATH_BRACKET_INLINE_${mathExpressions.length - 1}___`;
+        return `§§MATHBRACKETINLINE${mathExpressions.length - 1}§§`;
       });
 
       return { protectedText, mathExpressions };
@@ -72,10 +73,11 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
       let restored = html;
       mathExpressions.forEach((expr, i) => {
         // 모든 플레이스홀더 패턴을 원래 수식으로 복원
-        restored = restored.replace(`___MATH_BLOCK_${i}___`, expr);
-        restored = restored.replace(`___MATH_INLINE_${i}___`, expr);
-        restored = restored.replace(`___MATH_BRACKET_BLOCK_${i}___`, expr);
-        restored = restored.replace(`___MATH_BRACKET_INLINE_${i}___`, expr);
+        // 정규식을 사용하여 전역 치환 (g 플래그)
+        restored = restored.replace(new RegExp(`§§MATHBLOCK${i}§§`, 'g'), expr);
+        restored = restored.replace(new RegExp(`§§MATHINLINE${i}§§`, 'g'), expr);
+        restored = restored.replace(new RegExp(`§§MATHBRACKETBLOCK${i}§§`, 'g'), expr);
+        restored = restored.replace(new RegExp(`§§MATHBRACKETINLINE${i}§§`, 'g'), expr);
       });
       return restored;
     };
