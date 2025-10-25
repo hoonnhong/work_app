@@ -136,16 +136,16 @@ const RefineTextTool: React.FC = () => {
                 {isLoading && <Loader />}
                 {error && <div className="text-red-500 flex items-center gap-2"><ExclamationTriangleIcon className="h-5 w-5" /><span>{error}</span></div>}
                 {data && !isLoading && (
-                    <div>
-                        <h4 className="font-semibold mb-2">추천 문장:</h4>
-                        <ul className="space-y-3">
-                            {data.recommendations.map((rec, index) => (
-                                <li key={index} className="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg">{rec}</li>
-                            ))}
-                        </ul>
-                        <h4 className="font-semibold mt-4 mb-2">수정 방향 설명:</h4>
-                        <p>{data.explanation}</p>
-                    </div>
+                  <div>
+                      <h4 className="font-semibold mb-2">추천 문장:</h4>
+                      <ul className="space-y-3">
+                          {data.recommendations.map((rec, index) => (
+                              <li key={index} className="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg" dangerouslySetInnerHTML={{ __html: rec }}></li>
+                          ))}
+                      </ul>
+                      <h4 className="font-semibold mt-4 mb-2">수정 방향 설명:</h4>
+                      <p>{data.explanation}</p>
+                  </div>
                 )}
                  {!isLoading && !error && !data && <p className="text-slate-400 dark:text-slate-500 text-center py-10">결과가 여기에 표시됩니다.</p>}
             </div>
@@ -195,9 +195,16 @@ const SpellCheckTool: React.FC = () => {
                   {data && !isLoading && (
                       <div>
                           <h4 className="font-semibold mb-2">교정된 텍스트:</h4>
-                          <div className="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg">{data.correctedText}</div>
-                          <h4 className="font-semibold mt-4 mb-2">수정 사항 설명:</h4>
-                          <p>{data.explanation}</p>
+                          <div className="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg" dangerouslySetInnerHTML={{ __html: data.checkedText }}></div>
+                          <h4 className="font-semibold mt-4 mb-2">수정 제안:</h4>
+                          <ul className="space-y-2">
+                            {Array.isArray(data.corrections) && data.corrections.map((c, i) => (
+                              <li key={i} className="p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                <p><span className="line-through text-red-500">{c.original}</span> → <span className="font-semibold text-green-600">{c.corrected}</span></p>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{c.explanation}</p>
+                              </li>
+                            ))}
+                          </ul>
                       </div>
                   )}
                    {!isLoading && !error && !data && <p className="text-slate-400 dark:text-slate-500 text-center py-10">결과가 여기에 표시됩니다.</p>}

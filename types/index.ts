@@ -63,10 +63,17 @@ export interface RefinedTextResult {
   explanation: string;       // 수정 방향에 대한 설명
 }
 
+// '맞춤법 검사'의 각 수정 항목에 대한 상세 구조를 정의합니다.
+export interface CorrectionDetail {
+  original: string;    // 원본 단어/구문
+  corrected: string;   // 수정된 단어/구문
+  explanation: string; // 수정 이유
+}
+
 // 'SpellCheckResult' 인터페이스는 '맞춤법 검사' 기능의 AI 응답 데이터 구조를 정의합니다.
 export interface SpellCheckResult {
-  correctedText: string;     // 교정된 전체 텍스트
-  explanation: string;       // 수정 사항에 대한 설명
+  checkedText: string;     // 교정된 전체 텍스트
+  corrections: CorrectionDetail[]; // 수정 사항에 대한 상세 설명 객체의 배열
 }
 
 //--- 정산 관리 타입 정의 ---//

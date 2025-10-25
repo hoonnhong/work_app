@@ -87,14 +87,14 @@ async function runTextPrompt(prompt: string, model: string): Promise<string> {
 
 // [글쓰기 도우미] 문장 다듬기
 export const refineText = async (text: string, tone: string, customPrompt: string | undefined | null, model: string): Promise<RefinedTextResult> => {
-  const effectivePrompt = customPrompt ?? "다음 텍스트를 {tone} 톤으로 더 자연스럽고 명확하게 다듬어줘. 수정된 부분은 **굵은 글씨**로 표시하고, 전체 문장을 'refinedText' 필드에, 수정 이유를 'reason' 필드에 담아 JSON 형식으로 반환해줘:\n\n---\n{text}\n---";
+  const effectivePrompt = customPrompt ?? "다음 텍스트를 {tone} 톤으로 더 자연스럽고 명확하게 다듬어줘. 3가지 버전의 추천 문장을 'recommendations' 필드(배열)에, 수정 방향에 대한 설명을 'explanation' 필드에 담아 JSON 형식으로 반환해줘. **어떤 추가적인 설명이나 대화 없이 오직 JSON 객체만 반환해야 해.**:\n\n---\n{text}\n---";
   const prompt = effectivePrompt.replace('{text}', text).replace('{tone}', tone);
   return runJsonPrompt<RefinedTextResult>(prompt, model);
 };
 
 // [글쓰기 도우미] 맞춤법 검사
 export const spellCheck = async (text: string, customPrompt: string | undefined | null, model: string): Promise<SpellCheckResult> => {
-  const effectivePrompt = customPrompt ?? "다음 텍스트에서 맞춤법과 문법 오류를 찾아 수정해줘. 수정된 부분은 **굵은 글씨**로 표시하고, 전체 문장을 'checkedText' 필드에, 수정 사항에 대한 설명을 'corrections' 필드(배열)에 담아 JSON 형식으로 반환해줘:\n\n---\n{text}\n---";
+  const effectivePrompt = customPrompt ?? "다음 텍스트에서 맞춤법과 문법 오류를 찾아 수정해줘. 수정된 부분은 **굵은 글씨**로 표시하고, 전체 문장을 'checkedText' 필드에, 수정 사항에 대한 설명을 'corrections' 필드(배열)에 담아 JSON 형식으로 반환해줘. **어떤 추가적인 설명이나 대화 없이 오직 JSON 객체만 반환해야 해.**:\n\n---\n{text}\n---";
   const prompt = effectivePrompt.replace('{text}', text);
   return runJsonPrompt<SpellCheckResult>(prompt, model);
 };
@@ -129,7 +129,7 @@ export const findWordsForDescription = async (description: string, customPrompt:
 
 // [AI 계산기]
 export const calculateExpression = async (expression: string, customPrompt: string | undefined | null, model: string): Promise<string> => {
-  const effectivePrompt = customPrompt ?? "다음 수식을 계산해줘: {expression}";
+  const effectivePrompt = customPrompt ?? "다음 수식을 계산하고, 풀이 과정을 단계별로 설명해줘. 최종 답은 '결과:' 뒤에, 풀이 과정은 '풀이:' 뒤에 명확하게 구분해서 표시해줘. 수식: {expression}";
   const prompt = effectivePrompt.replace('{expression}', expression);
   return runTextPrompt(prompt, model);
 };
@@ -147,7 +147,7 @@ export const generateAnnouncement = async (details: Record<string, string | numb
 
 // [프롬프트 생성기]
 export const generatePrompt = async (details: { request: string; variables: string; outputFormat: string }, customPrompt: string | undefined | null, model: string): Promise<GeneratedPrompt> => {
-    const effectivePrompt = customPrompt ?? "다음 요구사항을 바탕으로, Gemini API가 최고의 성능을 발휘할 수 있는 명확하고 상세한 프롬프트를 작성해줘. 프롬프트는 'prompt' 필드에, 프롬프트에 사용된 변수는 'variables' 필드(배열)에 담아 JSON 형식으로 반환해줘.\n\n---\n{details}\n---";
+    const effectivePrompt = customPrompt ?? "다음 요구사항을 바탕으로, Gemini API가 최고의 성능을 발휘할 수 있는 명확하고 상세한 프롬프트를 한국어와 영어로 각각 작성해줘. 생성된 한국어 프롬프트는 'korean' 필드에, 영어 프롬프트는 'english' 필드에 담아 JSON 형식으로 반환해줘. **어떤 추가적인 설명이나 대화 없이 오직 JSON 객체만 반환해야 해.**\n\n---\n{details}\n---";
     const detailsString = `
 - 프롬프트의 목표: ${details.request}
 - 프롬프트에 포함될 변수 (예: {text}): ${details.variables}
