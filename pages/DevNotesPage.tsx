@@ -41,6 +41,8 @@ const DevNotesPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<DevNoteCategory | ''>('');
   // 9. `selectedPriority`: 필터링할 우선순위를 저장합니다.
   const [selectedPriority, setSelectedPriority] = useState<DevNotePriority | ''>('');
+  // 10. `completedFilter`: 완료 상태 필터 ('all', 'completed', 'incomplete')
+  const [completedFilter, setCompletedFilter] = useState<'all' | 'completed' | 'incomplete'>('incomplete');
   
   // Firestore 실시간 데이터 구독
   useEffect(() => {
@@ -70,6 +72,13 @@ const DevNotesPage: React.FC = () => {
   // 필터링 및 정렬된 노트 목록
   const filteredAndSortedNotes = useMemo(() => {
     let filtered = [...notes];
+
+    // 완료 상태 필터링
+    if (completedFilter === 'completed') {
+      filtered = filtered.filter(note => note.completed === true);
+    } else if (completedFilter === 'incomplete') {
+      filtered = filtered.filter(note => note.completed !== true);
+    }
 
     // 태그 필터링
     if (selectedTag) {
@@ -113,7 +122,7 @@ const DevNotesPage: React.FC = () => {
     });
 
     return filtered;
-  }, [notes, selectedTag, selectedCategory, selectedPriority, sortBy]);
+  }, [notes, completedFilter, selectedTag, selectedCategory, selectedPriority, sortBy]);
 
   // '수정' 아이콘 클릭 시 실행될 함수입니다.
   const handleEdit = (note: DevNote) => {
@@ -235,6 +244,17 @@ const DevNotesPage: React.FC = () => {
             <option value="category">카테고리순</option>
             <option value="title">제목순</option>
             <option value="tag">태그순</option>
+          </select>
+
+          {/* 완료 상태 필터 */}
+          <select
+            value={completedFilter}
+            onChange={(e) => setCompletedFilter(e.target.value as 'all' | 'completed' | 'incomplete')}
+            className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md text-sm"
+          >
+            <option value="incomplete">미완료만</option>
+            <option value="all">전체</option>
+            <option value="completed">완료만</option>
           </select>
 
           {/* 카테고리 필터 */}
