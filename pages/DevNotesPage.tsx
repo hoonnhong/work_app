@@ -7,13 +7,18 @@
  */
 
 // React와 필요한 기능, 컴포넌트, 타입들을 가져옵니다.
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ALL_NAV_LINKS } from '../constants'; // 내비게이션 링크 상수
 import PageHeader from '../components/PageHeader'; // 페이지 상단 제목 컴포넌트
 import type { DevNote } from '../types'; // DevNote 데이터 타입
 import { PencilSquareIcon, TrashIcon } from '../components/Icons'; // 수정, 삭제 아이콘
 import Loader from '../components/Loader'; // 로딩 스피너
 import { devNoteService } from '../src/firebase/firestore-service';
+
+// 뷰 모드 타입 정의
+type ViewMode = 'card' | 'table';
+// 정렬 기준 타입 정의
+type SortBy = 'date' | 'title' | 'tag';
 
 // DevNotesPage 컴포넌트를 정의합니다.
 const DevNotesPage: React.FC = () => {
@@ -26,6 +31,12 @@ const DevNotesPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   // 4. `editingNote`: 현재 수정 중인 노트 정보를 저장합니다.
   const [editingNote, setEditingNote] = useState<DevNote | null>(null);
+  // 5. `viewMode`: 카드형/표형식 뷰 모드를 저장합니다.
+  const [viewMode, setViewMode] = useState<ViewMode>('card');
+  // 6. `sortBy`: 정렬 기준을 저장합니다.
+  const [sortBy, setSortBy] = useState<SortBy>('date');
+  // 7. `selectedTag`: 필터링할 태그를 저장합니다.
+  const [selectedTag, setSelectedTag] = useState<string>('');
   
   // Firestore 실시간 데이터 구독
   useEffect(() => {
@@ -42,6 +53,43 @@ const DevNotesPage: React.FC = () => {
       unsubscribe();
     };
   }, []);
+
+  // 모든 태그 목록 추출 (중복 제거)
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    notes.forEach(note => {
+      note.tags.forEach(tag => tagSet.add(tag));
+    });
+    return Array.from(tagSet).sort();
+  }, [notes]);
+
+  // 필터링 및 정렬된 노트 목록
+  const filteredAndSortedNotes = useMemo(() => {
+    let filtered = [...notes];
+
+    // 태그 필터링
+    if (selectedTag) {
+      filtered = filtered.filter(note => note.tags.includes(selectedTag));
+    }
+
+    // 정렬
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'date':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'title':
+          return a.title.localeCompare(b.title);
+        case 'tag':
+          const aTag = a.tags[0] || '';
+          const bTag = b.tags[0] || '';
+          return aTag.localeCompare(bTag);
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [notes, selectedTag, sortBy]);
 
   // '수정' 아이콘 클릭 시 실행될 함수입니다.
   const handleEdit = (note: DevNote) => {
@@ -66,13 +114,17 @@ const DevNotesPage: React.FC = () => {
     try {
       if (note.id) {
         // 기존 노트 수정
-        await devNoteService.update(String(note.id), note);
+        await devNoteService.update(String(note.id), {
+          ...note,
+          completed: note.completed || false
+        });
       } else {
         // 새 노트 추가
         const newNote = {
           ...note,
           id: Date.now(),
-          created_at: new Date().toISOString().split('T')[0]
+          created_at: new Date().toISOString().split('T')[0],
+          completed: false
         };
         await devNoteService.setWithId(String(newNote.id), newNote);
       }
@@ -87,56 +139,212 @@ const DevNotesPage: React.FC = () => {
   // '새 노트 추가' 버튼 클릭 시 실행될 함수입니다.
   const handleAddNew = () => {
     // `editingNote` 상태를 빈 노트 정보로 설정하여 모달이 '추가' 모드로 열리게 합니다.
-    setEditingNote({ id: 0, title: '', content: '', tags: [], created_at: '' });
+    setEditingNote({ id: 0, title: '', content: '', tags: [], created_at: '', completed: false });
     setIsModalOpen(true);
+  };
+
+  // 완료 상태 토글 함수
+  const handleToggleComplete = async (note: DevNote) => {
+    try {
+      await devNoteService.update(String(note.id), {
+        ...note,
+        completed: !note.completed
+      });
+    } catch (error) {
+      console.error('Failed to update note:', error);
+      alert('노트 업데이트에 실패했습니다.');
+    }
   };
 
   return (
     <div>
-      <PageHeader 
-        title={ALL_NAV_LINKS.devNotes.name} 
+      <PageHeader
+        title={ALL_NAV_LINKS.devNotes.name}
         subtitle="개발 작업, 버그, 아이디어를 기록하고 관리하세요."
         icon={ALL_NAV_LINKS.devNotes.icon}
       />
-      <div className="flex flex-wrap justify-end mb-4 gap-2">
-        <button onClick={handleAddNew} className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors">새 노트 추가</button>
+
+      {/* 컨트롤 패널: 뷰 모드 전환, 정렬, 필터, 추가 버튼 */}
+      <div className="flex flex-wrap justify-between items-center mb-4 gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* 뷰 모드 전환 버튼 */}
+          <div className="flex bg-slate-200 dark:bg-slate-700 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('card')}
+              className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                viewMode === 'card'
+                  ? 'bg-white dark:bg-slate-600 text-primary-600 dark:text-primary-400 shadow'
+                  : 'text-slate-600 dark:text-slate-300'
+              }`}
+            >
+              카드형
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                viewMode === 'table'
+                  ? 'bg-white dark:bg-slate-600 text-primary-600 dark:text-primary-400 shadow'
+                  : 'text-slate-600 dark:text-slate-300'
+              }`}
+            >
+              표형식
+            </button>
+          </div>
+
+          {/* 정렬 선택 */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortBy)}
+            className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md text-sm"
+          >
+            <option value="date">날짜순</option>
+            <option value="title">제목순</option>
+            <option value="tag">태그순</option>
+          </select>
+
+          {/* 태그 필터 */}
+          <select
+            value={selectedTag}
+            onChange={(e) => setSelectedTag(e.target.value)}
+            className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md text-sm"
+          >
+            <option value="">모든 태그</option>
+            {allTags.map(tag => (
+              <option key={tag} value={tag}>{tag}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* 새 노트 추가 버튼 */}
+        <button
+          onClick={handleAddNew}
+          className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
+        >
+          새 노트 추가
+        </button>
       </div>
-      
+
       {isLoading ? <Loader /> : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* 노트가 하나도 없으면 안내 메시지를 보여줍니다. */}
-          {notes.length === 0 ? (
-            <div className="md:col-span-2 lg:col-span-3 text-center py-16 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-              <p className="text-slate-500 dark:text-slate-400">저장된 노트가 없습니다.</p>
+        <>
+          {filteredAndSortedNotes.length === 0 ? (
+            <div className="text-center py-16 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+              <p className="text-slate-500 dark:text-slate-400">
+                {selectedTag ? `'${selectedTag}' 태그가 있는 노트가 없습니다.` : '저장된 노트가 없습니다.'}
+              </p>
               <p className="text-slate-500 dark:text-slate-400 mt-2">'새 노트 추가' 버튼을 눌러 시작하세요.</p>
             </div>
-          ) : (
-            // `notes` 배열을 순회하며 각 노트를 카드 형태로 렌더링합니다.
-            notes.map(note => (
-              <div key={note.id} className="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">{note.title}</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-2">{note.created_at}</p>
-                  {/* `whitespace-pre-wrap` 클래스는 줄바꿈과 공백을 그대로 표시해줍니다. */}
-                  <p className="text-slate-600 dark:text-slate-300 mb-3 whitespace-pre-wrap">{note.content}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {/* 태그 배열을 순회하며 각 태그를 렌더링합니다. */}
-                    {note.tags.map(tag => (
-                      <span key={tag} className="px-2 py-1 text-xs bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 rounded-full">{tag}</span>
-                    ))}
+          ) : viewMode === 'card' ? (
+            // 카드형 뷰
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredAndSortedNotes.map(note => (
+                <div
+                  key={note.id}
+                  className={`bg-white dark:bg-slate-800 p-5 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 flex flex-col justify-between ${
+                    note.completed ? 'opacity-60' : ''
+                  }`}
+                >
+                  <div>
+                    <h3 className={`text-lg font-bold text-slate-800 dark:text-slate-100 ${note.completed ? 'line-through' : ''}`}>
+                      {note.title}
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-2">{note.created_at}</p>
+                    <p className="text-slate-600 dark:text-slate-300 mb-3 whitespace-pre-wrap">{note.content}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {note.tags.map(tag => (
+                        <span key={tag} className="px-2 py-1 text-xs bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 rounded-full">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2 mt-4">
+                    <button onClick={() => handleEdit(note)} className="text-blue-500 hover:text-blue-700">
+                      <PencilSquareIcon className="h-5 w-5"/>
+                    </button>
+                    <button onClick={() => handleDelete(note.id)} className="text-red-500 hover:text-red-700">
+                      <TrashIcon className="h-5 w-5"/>
+                    </button>
                   </div>
                 </div>
-                <div className="flex justify-end space-x-2 mt-4">
-                    <button onClick={() => handleEdit(note)} className="text-blue-500 hover:text-blue-700"><PencilSquareIcon className="h-5 w-5"/></button>
-                    <button onClick={() => handleDelete(note.id)} className="text-red-500 hover:text-red-700"><TrashIcon className="h-5 w-5"/></button>
-                </div>
-              </div>
-            ))
+              ))}
+            </div>
+          ) : (
+            // 표형식 뷰
+            <div className="overflow-x-auto bg-white dark:bg-slate-800 rounded-lg shadow-md">
+              <table className="w-full">
+                <thead className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200 w-12">완료</th>
+                    <th
+                      className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+                      onClick={() => setSortBy('title')}
+                    >
+                      <div className="flex items-center gap-1">
+                        제목
+                        {sortBy === 'title' && <span className="text-primary-600 dark:text-primary-400">▼</span>}
+                      </div>
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200">내용</th>
+                    <th
+                      className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors w-32"
+                      onClick={() => setSortBy('tag')}
+                    >
+                      <div className="flex items-center gap-1">
+                        태그
+                        {sortBy === 'tag' && <span className="text-primary-600 dark:text-primary-400">▼</span>}
+                      </div>
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200 w-24">작업</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                  {filteredAndSortedNotes.map(note => (
+                    <tr key={note.id} className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 ${note.completed ? 'opacity-60' : ''}`}>
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={note.completed || false}
+                          onChange={() => handleToggleComplete(note)}
+                          className="w-4 h-4 text-primary-600 bg-slate-100 border-slate-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600"
+                        />
+                      </td>
+                      <td className={`px-4 py-3 text-slate-900 dark:text-slate-100 font-medium ${note.completed ? 'line-through' : ''}`}>
+                        {note.title}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 max-w-md">
+                        <div className="line-clamp-2 whitespace-pre-wrap">
+                          {note.content}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {note.tags.map(tag => (
+                            <span key={tag} className="px-2 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 rounded-full">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex space-x-2">
+                          <button onClick={() => handleEdit(note)} className="text-blue-500 hover:text-blue-700">
+                            <PencilSquareIcon className="h-5 w-5"/>
+                          </button>
+                          <button onClick={() => handleDelete(note.id)} className="text-red-500 hover:text-red-700">
+                            <TrashIcon className="h-5 w-5"/>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-        </div>
+        </>
       )}
 
-       {/* `isModalOpen`과 `editingNote`가 유효할 때만 모달을 렌더링합니다. */}
+       {/* 노트 추가/수정 모달 */}
        {isModalOpen && editingNote && <NoteModal note={editingNote} onSave={handleSave} onClose={() => setIsModalOpen(false)} />}
     </div>
   );

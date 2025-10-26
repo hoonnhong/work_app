@@ -37,6 +37,7 @@ export interface DevNote {
   content: string;      // 노트의 내용
   tags: string[];       // 노트를 분류하기 위한 태그 (문자열 배열)
   created_at: string;   // 노트 작성 날짜 (예: "2023-10-27")
+  completed?: boolean;  // 완료 여부
   createdAt?: string;   // 생성 날짜 (ISO 8601 형식)
 }
 
