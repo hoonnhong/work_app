@@ -13,7 +13,7 @@ import PageHeader from '../components/PageHeader'; // 페이지 상단 제목 �
 import type { DevNote, DevNoteCategory, DevNotePriority } from '../types'; // DevNote 데이터 타입
 import { PencilSquareIcon, TrashIcon } from '../components/Icons'; // 수정, 삭제 아이콘
 import Loader from '../components/Loader'; // 로딩 스피너
-import { devNoteService } from '../src/firebase/firestore-service';
+import { devNoteService, deleteField } from '../src/firebase/firestore-service';
 
 // 뷰 모드 타입 정의
 type ViewMode = 'card' | 'table';
@@ -151,6 +151,9 @@ const DevNotesPage: React.FC = () => {
           ...note,
           completed: note.completed || false
         });
+        // 수정 후에는 모달 닫기
+        setIsModalOpen(false);
+        setEditingNote(null);
       } else {
         // 새 노트 추가
         const newNote = {
@@ -160,9 +163,18 @@ const DevNotesPage: React.FC = () => {
           completed: false
         };
         await devNoteService.setWithId(String(newNote.id), newNote);
+        // 새 노트 추가 후에는 모달을 열린 상태로 유지하고 입력 필드만 초기화
+        setEditingNote({
+          id: 0,
+          title: '',
+          content: '',
+          tags: [],
+          created_at: '',
+          completed: false,
+          category: undefined,
+          priority: undefined
+        });
       }
-      setIsModalOpen(false);
-      setEditingNote(null);
     } catch (error) {
       console.error('Failed to save note:', error);
       alert('노트 저장에 실패했습니다.');
@@ -188,10 +200,20 @@ const DevNotesPage: React.FC = () => {
   // 완료 상태 토글 함수
   const handleToggleComplete = async (note: DevNote) => {
     try {
-      await devNoteService.update(String(note.id), {
-        ...note,
-        completed: !note.completed
-      });
+      const newCompletedState = !note.completed;
+      const updateData: any = {
+        completed: newCompletedState
+      };
+
+      if (newCompletedState) {
+        // 완료 상태로 변경 시 현재 날짜 저장
+        updateData.completedAt = new Date().toISOString();
+      } else {
+        // 미완료 상태로 변경 시 completedAt 필드 삭제
+        updateData.completedAt = deleteField();
+      }
+
+      await devNoteService.update(String(note.id), updateData);
     } catch (error) {
       console.error('Failed to update note:', error);
       alert('노트 업데이트에 실패했습니다.');
@@ -342,6 +364,15 @@ const DevNotesPage: React.FC = () => {
                     </div>
                     <div className="flex gap-2 items-center mb-2">
                       <p className="text-sm text-slate-500 dark:text-slate-400">{note.created_at}</p>
+                      {note.completedAt && (
+                        <span className="text-sm text-green-600 dark:text-green-400">
+                          (완료: {new Date(note.completedAt).toLocaleDateString('ko-KR', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit'
+                          })})
+                        </span>
+                      )}
                       {note.category && (
                         <span className={`px-2 py-0.5 text-xs font-medium rounded ${
                           note.category === '에러' ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
@@ -407,7 +438,6 @@ const DevNotesPage: React.FC = () => {
                         {sortBy === 'title' && <span className="text-primary-600 dark:text-primary-400">▼</span>}
                       </div>
                     </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200">내용</th>
                     <th
                       className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors w-32"
                       onClick={() => setSortBy('tag')}
@@ -461,11 +491,6 @@ const DevNotesPage: React.FC = () => {
                       <td className={`px-4 py-3 text-slate-900 dark:text-slate-100 font-medium ${note.completed ? 'line-through' : ''}`}>
                         {note.title}
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 max-w-md">
-                        <div className="line-clamp-2 whitespace-pre-wrap">
-                          {note.content}
-                        </div>
-                      </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
                           {note.tags.map(tag => (
@@ -477,10 +502,28 @@ const DevNotesPage: React.FC = () => {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex space-x-2">
-                          <button onClick={() => handleEdit(note)} className="text-blue-500 hover:text-blue-700">
+                          <button
+                            onClick={() => handleEdit(note)}
+                            className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+                            title="자세히 보기"
+                          >
+                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleEdit(note)}
+                            className="text-blue-500 hover:text-blue-700"
+                            title="수정"
+                          >
                             <PencilSquareIcon className="h-5 w-5"/>
                           </button>
-                          <button onClick={() => handleDelete(note.id)} className="text-red-500 hover:text-red-700">
+                          <button
+                            onClick={() => handleDelete(note.id)}
+                            className="text-red-500 hover:text-red-700"
+                            title="삭제"
+                          >
                             <TrashIcon className="h-5 w-5"/>
                           </button>
                         </div>

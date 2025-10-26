@@ -46,6 +46,7 @@ export interface DevNote {
   priority?: DevNotePriority; // 우선순위 (높음, 보통, 낮음)
   created_at: string;   // 노트 작성 날짜 (예: "2023-10-27")
   completed?: boolean;  // 완료 여부
+  completedAt?: string; // 완료 날짜 (ISO 8601 형식)
   createdAt?: string;   // 생성 날짜 (ISO 8601 형식)
 }
 

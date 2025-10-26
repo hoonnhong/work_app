@@ -7,6 +7,7 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  deleteField,
   query,
   onSnapshot,
   Timestamp,
@@ -144,3 +145,6 @@ export const promptService = new FirestoreService<Prompt>('prompts');
 
 // Member options service (for managing role and department options)
 export const memberOptionsService = new FirestoreService<MemberOptionsSettings>('settings');
+
+// Export deleteField for use in components
+export { deleteField };
