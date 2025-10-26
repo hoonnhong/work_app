@@ -7,7 +7,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+
+# Build output
 dist
 dist-ssr
 
@@ -28,3 +31,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code settings
+.claude/settings.local.json
+
+# Backup and temporary files
+backup/
+*.bak
+*.tmp
