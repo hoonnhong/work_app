@@ -10,7 +10,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ALL_NAV_LINKS } from '../constants'; // 내비게이션 링크 상수
 import PageHeader from '../components/PageHeader'; // 페이지 상단 제목 컴포넌트
-import type { DevNote } from '../types'; // DevNote 데이터 타입
+import type { DevNote, DevNoteCategory, DevNotePriority } from '../types'; // DevNote 데이터 타입
 import { PencilSquareIcon, TrashIcon } from '../components/Icons'; // 수정, 삭제 아이콘
 import Loader from '../components/Loader'; // 로딩 스피너
 import { devNoteService } from '../src/firebase/firestore-service';
@@ -18,7 +18,7 @@ import { devNoteService } from '../src/firebase/firestore-service';
 // 뷰 모드 타입 정의
 type ViewMode = 'card' | 'table';
 // 정렬 기준 타입 정의
-type SortBy = 'date' | 'title' | 'tag';
+type SortBy = 'date' | 'title' | 'tag' | 'category' | 'priority';
 
 // DevNotesPage 컴포넌트를 정의합니다.
 const DevNotesPage: React.FC = () => {
@@ -37,6 +37,10 @@ const DevNotesPage: React.FC = () => {
   const [sortBy, setSortBy] = useState<SortBy>('date');
   // 7. `selectedTag`: 필터링할 태그를 저장합니다.
   const [selectedTag, setSelectedTag] = useState<string>('');
+  // 8. `selectedCategory`: 필터링할 카테고리를 저장합니다.
+  const [selectedCategory, setSelectedCategory] = useState<DevNoteCategory | ''>('');
+  // 9. `selectedPriority`: 필터링할 우선순위를 저장합니다.
+  const [selectedPriority, setSelectedPriority] = useState<DevNotePriority | ''>('');
   
   // Firestore 실시간 데이터 구독
   useEffect(() => {
@@ -72,6 +76,16 @@ const DevNotesPage: React.FC = () => {
       filtered = filtered.filter(note => note.tags.includes(selectedTag));
     }
 
+    // 카테고리 필터링
+    if (selectedCategory) {
+      filtered = filtered.filter(note => note.category === selectedCategory);
+    }
+
+    // 우선순위 필터링
+    if (selectedPriority) {
+      filtered = filtered.filter(note => note.priority === selectedPriority);
+    }
+
     // 정렬
     filtered.sort((a, b) => {
       switch (sortBy) {
@@ -83,13 +97,23 @@ const DevNotesPage: React.FC = () => {
           const aTag = a.tags[0] || '';
           const bTag = b.tags[0] || '';
           return aTag.localeCompare(bTag);
+        case 'category':
+          const categoryOrder = { '에러': 1, '개선': 2, '추가기능': 3, '새기능': 4 };
+          const aCategory = a.category ? categoryOrder[a.category] : 999;
+          const bCategory = b.category ? categoryOrder[b.category] : 999;
+          return aCategory - bCategory;
+        case 'priority':
+          const priorityOrder = { '높음': 1, '보통': 2, '낮음': 3 };
+          const aPriority = a.priority ? priorityOrder[a.priority] : 999;
+          const bPriority = b.priority ? priorityOrder[b.priority] : 999;
+          return aPriority - bPriority;
         default:
           return 0;
       }
     });
 
     return filtered;
-  }, [notes, selectedTag, sortBy]);
+  }, [notes, selectedTag, selectedCategory, selectedPriority, sortBy]);
 
   // '수정' 아이콘 클릭 시 실행될 함수입니다.
   const handleEdit = (note: DevNote) => {
@@ -139,7 +163,16 @@ const DevNotesPage: React.FC = () => {
   // '새 노트 추가' 버튼 클릭 시 실행될 함수입니다.
   const handleAddNew = () => {
     // `editingNote` 상태를 빈 노트 정보로 설정하여 모달이 '추가' 모드로 열리게 합니다.
-    setEditingNote({ id: 0, title: '', content: '', tags: [], created_at: '', completed: false });
+    setEditingNote({
+      id: 0,
+      title: '',
+      content: '',
+      tags: [],
+      created_at: '',
+      completed: false,
+      category: undefined,
+      priority: undefined
+    });
     setIsModalOpen(true);
   };
 
@@ -198,8 +231,35 @@ const DevNotesPage: React.FC = () => {
             className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md text-sm"
           >
             <option value="date">날짜순</option>
+            <option value="priority">우선순위순</option>
+            <option value="category">카테고리순</option>
             <option value="title">제목순</option>
             <option value="tag">태그순</option>
+          </select>
+
+          {/* 카테고리 필터 */}
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value as DevNoteCategory | '')}
+            className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md text-sm"
+          >
+            <option value="">모든 카테고리</option>
+            <option value="에러">에러</option>
+            <option value="개선">개선</option>
+            <option value="추가기능">추가기능</option>
+            <option value="새기능">새기능</option>
+          </select>
+
+          {/* 우선순위 필터 */}
+          <select
+            value={selectedPriority}
+            onChange={(e) => setSelectedPriority(e.target.value as DevNotePriority | '')}
+            className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md text-sm"
+          >
+            <option value="">모든 우선순위</option>
+            <option value="높음">높음</option>
+            <option value="보통">보통</option>
+            <option value="낮음">낮음</option>
           </select>
 
           {/* 태그 필터 */}
@@ -244,10 +304,35 @@ const DevNotesPage: React.FC = () => {
                   }`}
                 >
                   <div>
-                    <h3 className={`text-lg font-bold text-slate-800 dark:text-slate-100 ${note.completed ? 'line-through' : ''}`}>
-                      {note.title}
-                    </h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-2">{note.created_at}</p>
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h3 className={`text-lg font-bold text-slate-800 dark:text-slate-100 ${note.completed ? 'line-through' : ''}`}>
+                        {note.title}
+                      </h3>
+                      <div className="flex gap-1 flex-shrink-0">
+                        {note.priority && (
+                          <span className={`px-2 py-0.5 text-xs font-semibold rounded ${
+                            note.priority === '높음' ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300' :
+                            note.priority === '보통' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300' :
+                            'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
+                          }`}>
+                            {note.priority}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 items-center mb-2">
+                      <p className="text-sm text-slate-500 dark:text-slate-400">{note.created_at}</p>
+                      {note.category && (
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded ${
+                          note.category === '에러' ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
+                          note.category === '개선' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
+                          note.category === '추가기능' ? 'bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' :
+                          'bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                        }`}>
+                          {note.category}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-slate-600 dark:text-slate-300 mb-3 whitespace-pre-wrap">{note.content}</p>
                     <div className="flex flex-wrap gap-2">
                       {note.tags.map(tag => (
@@ -275,6 +360,24 @@ const DevNotesPage: React.FC = () => {
                 <thead className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
                   <tr>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200 w-12">완료</th>
+                    <th
+                      className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+                      onClick={() => setSortBy('priority')}
+                    >
+                      <div className="flex items-center gap-1">
+                        우선순위
+                        {sortBy === 'priority' && <span className="text-primary-600 dark:text-primary-400">▼</span>}
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+                      onClick={() => setSortBy('category')}
+                    >
+                      <div className="flex items-center gap-1">
+                        카테고리
+                        {sortBy === 'category' && <span className="text-primary-600 dark:text-primary-400">▼</span>}
+                      </div>
+                    </th>
                     <th
                       className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
                       onClick={() => setSortBy('title')}
@@ -307,6 +410,33 @@ const DevNotesPage: React.FC = () => {
                           onChange={() => handleToggleComplete(note)}
                           className="w-4 h-4 text-primary-600 bg-slate-100 border-slate-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600"
                         />
+                      </td>
+                      <td className="px-4 py-3">
+                        {note.priority ? (
+                          <span className={`px-2 py-1 text-xs font-semibold rounded ${
+                            note.priority === '높음' ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300' :
+                            note.priority === '보통' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300' :
+                            'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
+                          }`}>
+                            {note.priority}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 dark:text-slate-500 text-xs">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {note.category ? (
+                          <span className={`px-2 py-1 text-xs font-medium rounded ${
+                            note.category === '에러' ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
+                            note.category === '개선' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
+                            note.category === '추가기능' ? 'bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' :
+                            'bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                          }`}>
+                            {note.category}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 dark:text-slate-500 text-xs">-</span>
+                        )}
                       </td>
                       <td className={`px-4 py-3 text-slate-900 dark:text-slate-100 font-medium ${note.completed ? 'line-through' : ''}`}>
                         {note.title}
@@ -364,7 +494,7 @@ const NoteModal: React.FC<ModalProps> = ({ note, onSave, onClose }) => {
     // 태그 배열을 쉼표로 구분된 문자열로 변환하여 입력 필드에서 편집하기 쉽게 만듭니다.
     const [formData, setFormData] = useState({...note, tags: note.tags.join(', ')});
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
@@ -389,6 +519,37 @@ const NoteModal: React.FC<ModalProps> = ({ note, onSave, onClose }) => {
                      <div>
                         <label htmlFor="content" className="block text-sm font-medium text-slate-700 dark:text-slate-300">내용</label>
                         <textarea name="content" value={formData.content} onChange={handleChange} rows={4} className="mt-1 block w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700"/>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="category" className="block text-sm font-medium text-slate-700 dark:text-slate-300">카테고리</label>
+                            <select
+                                name="category"
+                                value={formData.category || ''}
+                                onChange={handleChange}
+                                className="mt-1 block w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700"
+                            >
+                                <option value="">선택 안함</option>
+                                <option value="에러">에러</option>
+                                <option value="개선">개선</option>
+                                <option value="추가기능">추가기능</option>
+                                <option value="새기능">새기능</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="priority" className="block text-sm font-medium text-slate-700 dark:text-slate-300">우선순위</label>
+                            <select
+                                name="priority"
+                                value={formData.priority || ''}
+                                onChange={handleChange}
+                                className="mt-1 block w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700"
+                            >
+                                <option value="">선택 안함</option>
+                                <option value="높음">높음</option>
+                                <option value="보통">보통</option>
+                                <option value="낮음">낮음</option>
+                            </select>
+                        </div>
                     </div>
                     <div>
                         <label htmlFor="tags" className="block text-sm font-medium text-slate-700 dark:text-slate-300">태그 (쉼표로 구분)</label>

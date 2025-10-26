@@ -30,12 +30,20 @@ export interface Member {
 // 하위 호환성을 위한 별칭
 export type Employee = Member;
 
+// 개발 노트 카테고리 타입
+export type DevNoteCategory = '에러' | '개선' | '추가기능' | '새기능';
+
+// 개발 노트 우선순위 타입
+export type DevNotePriority = '높음' | '보통' | '낮음';
+
 // 'DevNote' 인터페이스는 개발 노트 한 개의 데이터 구조를 정의합니다.
 export interface DevNote {
   id: number;           // 각 노트를 구분하기 위한 고유 번호
   title: string;        // 노트의 제목
   content: string;      // 노트의 내용
   tags: string[];       // 노트를 분류하기 위한 태그 (문자열 배열)
+  category?: DevNoteCategory; // 카테고리 (에러, 개선, 추가기능, 새기능)
+  priority?: DevNotePriority; // 우선순위 (높음, 보통, 낮음)
   created_at: string;   // 노트 작성 날짜 (예: "2023-10-27")
   completed?: boolean;  // 완료 여부
   createdAt?: string;   // 생성 날짜 (ISO 8601 형식)
