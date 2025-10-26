@@ -48,18 +48,23 @@ const AiCalculatorPage: React.FC = () => {
   // 이렇게 하면 불필요한 리렌더링 시에 파싱 로직이 반복 실행되는 것을 막아 성능을 최적화할 수 있습니다.
   const parsedData = useMemo(() => {
     if (!data) return { result: null, explanation: null }; // 데이터가 없으면 null 반환
-    
-    // 정규 표현식을 사용하여 응답 텍스트에서 '결과:'와 '풀이:' 부분을 찾습니다.
-    const resultMatch = data.match(/결과:([^\n]*)/);
-    const explanationMatch = data.match(/풀이:([\s\S]*)/);
-    
-    // 찾은 텍스트의 앞뒤 공백을 제거합니다.
-    const resultText = resultMatch ? resultMatch[1].trim() : null;
-    const explanationText = explanationMatch ? explanationMatch[1].trim() : null;
 
-    // 만약 '결과'나 '풀이' 패턴을 찾지 못했다면, 전체 응답을 결과로 간주합니다.
+    // 정규 표현식을 사용하여 응답 텍스트에서 '결과:'와 '풀이:' 부분을 찾습니다.
+    const resultMatch = data.match(/결과:\s*(.+?)(?=\n\n|풀이:|$)/s);
+    const explanationMatch = data.match(/풀이:\s*([\s\S]*)/);
+
+    // 찾은 텍스트의 앞뒤 공백과 불필요한 기호를 제거합니다.
+    let resultText = resultMatch ? resultMatch[1].trim() : null;
+    let explanationText = explanationMatch ? explanationMatch[1].trim() : null;
+
+    // ** 만 있거나 비어있는 경우 null로 처리
+    if (resultText && (resultText === '**' || resultText === '' || /^\*\*\s*\*\*$/.test(resultText))) {
+      resultText = null;
+    }
+
+    // 만약 '결과'나 '풀이' 패턴을 찾지 못했다면, 전체 응답을 풀이로 간주합니다.
     if (!resultText && !explanationText) {
-      return { result: data, explanation: null };
+      return { result: null, explanation: data };
     }
 
     // 파싱된 결과와 풀이를 객체 형태로 반환합니다.
@@ -126,6 +131,12 @@ const AiCalculatorPage: React.FC = () => {
                              <MarkdownRenderer content={parsedData.result} />
                          </div>
                      </div>
+                )}
+                {/* 데이터는 있지만 결과가 파싱되지 않은 경우 안내 메시지 */}
+                {data && !isLoading && !parsedData.result && (
+                    <p className="text-slate-400 dark:text-slate-500 text-center py-10">
+                        결과를 계산 중입니다. 아래 풀이 과정을 확인해주세요.
+                    </p>
                 )}
                 {/* 초기 상태일 때 안내 메시지를 보여줍니다. */}
                 {!isLoading && !error && !data && (

@@ -39,3 +39,7 @@ dist-ssr
 backup/
 *.bak
 *.tmp
+
+# Firebase
+.firebase/
+.firebaserc

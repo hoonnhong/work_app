@@ -19,6 +19,7 @@ import { useModel } from '../hooks/useModel';
 import type { RefinedTextResult, SpellCheckResult } from '../types';
 import Loader from '../components/Loader';
 import { ExclamationTriangleIcon } from '../components/Icons';
+import MarkdownRenderer from '../components/MarkdownRenderer';
 
 // 사용 가능한 도구들의 타입을 정의합니다.
 type Tool = 'refine' | 'spellCheck' | 'compare' | 'translate' | 'wordFinder';
@@ -140,7 +141,9 @@ const RefineTextTool: React.FC = () => {
                       <h4 className="font-semibold mb-2">추천 문장:</h4>
                       <ul className="space-y-3">
                           {data.recommendations.map((rec, index) => (
-                              <li key={index} className="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg" dangerouslySetInnerHTML={{ __html: rec }}></li>
+                              <li key={index} className="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg">
+                                <MarkdownRenderer content={rec} />
+                              </li>
                           ))}
                       </ul>
                       <h4 className="font-semibold mt-4 mb-2">수정 방향 설명:</h4>
@@ -195,7 +198,9 @@ const SpellCheckTool: React.FC = () => {
                   {data && !isLoading && (
                       <div>
                           <h4 className="font-semibold mb-2">교정된 텍스트:</h4>
-                          <div className="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg" dangerouslySetInnerHTML={{ __html: data.checkedText }}></div>
+                          <div className="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg">
+                            <MarkdownRenderer content={data.checkedText} />
+                          </div>
                           <h4 className="font-semibold mt-4 mb-2">수정 제안:</h4>
                           <ul className="space-y-2">
                             {Array.isArray(data.corrections) && data.corrections.map((c, i) => (

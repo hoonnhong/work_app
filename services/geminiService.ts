@@ -11,6 +11,82 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { RefinedTextResult, SpellCheckResult, NewsArticle, GeneratedPrompt } from '../types';
 
+/**
+ * AI 응답에서 불필요한 마크다운 기호를 정리하는 함수
+ * AI가 일관성 없게 **만 단독으로 보내거나 형식을 어길 때 정규화합니다.
+ */
+function normalizeMarkdown(text: string): string {
+  if (!text) return text;
+
+  // 1. 텍스트 시작 부분의 ** 제거 (여러 개 있어도 모두 제거)
+  text = text.replace(/^\*\*+\s*/gm, '');
+
+  // 2. 텍스트 끝 부분의 ** 제거 (여러 개 있어도 모두 제거)
+  text = text.replace(/\s*\*\*+$/gm, '');
+
+  // 3. 줄바꿈 다음에 오는 단독 ** 제거
+  text = text.replace(/\n\*\*+\s*\n/g, '\n');
+
+  // 4. 공백만 있는 ** ** 패턴 제거
+  text = text.replace(/\*\*+\s+\*\*+/g, '');
+
+  // 5. ** 뒤에 바로 공백과 내용이 오는 경우 ** 제거 (** 내용 -> 내용)
+  text = text.replace(/\*\*+\s+(?=[^\*])/g, '');
+
+  // 6. 내용 뒤에 바로 공백과 **가 오는 경우 ** 제거 (내용 ** -> 내용)
+  text = text.replace(/(?<=[^\*])\s+\*\*+/g, '');
+
+  return text.trim();
+}
+
+/**
+ * 텍스트 형식의 수학 기호를 LaTeX 형식으로 자동 변환하는 함수
+ * AI가 가끔 LaTeX를 쓰지 않고 sqrt, ^ 등을 사용할 때 자동 변환합니다.
+ */
+function convertMathToLatex(text: string): string {
+  if (!text) return text;
+
+  // 1단계: LaTeX 표현 안의 이스케이프된 백슬래시를 정상화
+  // $\\sqrt{27}$ -> $\sqrt{27}$
+  text = text.replace(/\$([^$]+)\$/g, (match, content) => {
+    const unescaped = content.replace(/\\\\/g, '\\');
+    return `$${unescaped}$`;
+  });
+
+  // 이미 LaTeX 형식($...$)으로 감싸진 부분은 건드리지 않음
+  const latexProtected: string[] = [];
+  text = text.replace(/\$[^$]+\$/g, (match) => {
+    latexProtected.push(match);
+    return `__LATEX_${latexProtected.length - 1}__`;
+  });
+
+  // 1. sqrt(숫자) -> $\sqrt{숫자}$ (단, $로 감싸지지 않은 경우만)
+  text = text.replace(/(?<!\$)sqrt\((\d+)\)(?!\$)/g, '$\\sqrt{$1}$');
+
+  // 2. 숫자^숫자 -> $숫자^{숫자}$ (단, $로 감싸지지 않은 경우만)
+  text = text.replace(/(?<!\$)(\d+)\^(\d+)(?!\$)/g, '$$$1^{$2}$$');
+
+  // 3. 분수 표현 (예: 7/3) -> $\frac{7}{3}$ (단, $로 감싸지지 않은 경우만)
+  text = text.replace(/(?<!\$)(\d+)\/(\d+)(?!\$)/g, (match, num, den) => {
+    // 날짜나 URL이 아닌 경우만 변환 (간단한 체크)
+    if (parseInt(num) > 12 || parseInt(den) > 31) {
+      return `$\\frac{${num}}{${den}}$`;
+    }
+    return match;
+  });
+
+  // 4. √ 기호를 LaTeX로 변환 (예: 3√3 -> $3\sqrt{3}$) (단, $로 감싸지지 않은 경우만)
+  text = text.replace(/(?<!\$)(\d+)√(\d+)(?!\$)/g, '$$$1\\sqrt{$2}$$');
+  text = text.replace(/(?<!\$)√(\d+)(?!\$)/g, '$\\sqrt{$1}$');
+
+  // 보호했던 LaTeX 복원
+  latexProtected.forEach((latex, i) => {
+    text = text.replace(`__LATEX_${i}__`, latex);
+  });
+
+  return text;
+}
+
 // API 클라이언트를 지연 초기화(lazy initialization)합니다.
 // 이렇게 하면 빌드 시점이 아닌 실제 사용 시점에 환경 변수를 확인하므로
 // Netlify 등에서 빌드할 때 에러가 발생하지 않습니다.
@@ -40,27 +116,61 @@ function getAIClient(): GoogleGenAI {
  * @returns AI 응답을 파싱한 Promise<T>
  */
 async function runJsonPrompt<T>(prompt: string, model: string, schema?: any): Promise<T> {
-  // `getAIClient().models.generateContent`를 사용하여 Gemini API에 요청을 보냅니다.
-  const response = await getAIClient().models.generateContent({
-    model,      // 사용할 AI 모델
-    contents: prompt, // AI에게 전달할 프롬프트 내용
-    config: {
-      responseMimeType: 'application/json', // 응답을 반드시 JSON 형식으로 요청합니다.
-      responseSchema: schema, // 만약 schema가 제공되면, 응답이 이 구조를 따르도록 요청합니다.
-    },
-  });
-
   try {
+    // `getAIClient().models.generateContent`를 사용하여 Gemini API에 요청을 보냅니다.
+    const response = await getAIClient().models.generateContent({
+      model,      // 사용할 AI 모델
+      contents: prompt, // AI에게 전달할 프롬프트 내용
+      config: {
+        responseMimeType: 'application/json', // 응답을 반드시 JSON 형식으로 요청합니다.
+        responseSchema: schema, // 만약 schema가 제공되면, 응답이 이 구조를 따르도록 요청합니다.
+      },
+    });
+
     // `response.text` 속성을 통해 AI가 생성한 텍스트 응답을 직접 가져옵니다.
-    const text = response.text.trim();
-    // 모델이 마크다운 코드 블록(```json ... ```) 안에 JSON을 반환하는 경우가 있으므로, 이를 제거하는 전처리 과정입니다.
-    const jsonStr = text.startsWith('```json') ? text.replace(/```json\n|```/g, '') : text;
-    // JSON 문자열을 실제 JavaScript 객체로 파싱하여 반환합니다.
-    return JSON.parse(jsonStr) as T;
-  } catch (e) {
-    // JSON 파싱에 실패하면, 콘솔에 원본 응답을 출력하고 사용자에게 에러를 던집니다.
-    console.error("JSON 파싱 실패:", response.text);
-    throw new Error("AI 응답을 파싱하는 데 실패했습니다. 응답이 유효한 JSON 형식이 아닙니다.");
+    let text = response.text.trim();
+
+    // 1. 마크다운 코드 블록 제거
+    if (text.startsWith('```json')) {
+      text = text.replace(/```json\n?|```/g, '');
+    }
+
+    // 2. 불필요한 ** 기호 제거
+    text = normalizeMarkdown(text);
+
+    // 3. JSON 문자열을 실제 JavaScript 객체로 파싱하여 반환합니다.
+    const parsed = JSON.parse(text) as T;
+
+    // 4. JSON 내부의 문자열 필드도 정규화 (checkedText, recommendations 등)
+    if (typeof parsed === 'object' && parsed !== null) {
+      Object.keys(parsed).forEach(key => {
+        const value = (parsed as any)[key];
+        if (typeof value === 'string') {
+          (parsed as any)[key] = normalizeMarkdown(value);
+        } else if (Array.isArray(value)) {
+          (parsed as any)[key] = value.map(item =>
+            typeof item === 'string' ? normalizeMarkdown(item) : item
+          );
+        }
+      });
+    }
+
+    return parsed;
+  } catch (e: any) {
+    // API 에러 처리
+    if (e?.error?.code === 500) {
+      throw new Error("Gemini API 서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.");
+    }
+    if (e?.error?.code === 429) {
+      throw new Error("API 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.");
+    }
+    // JSON 파싱 에러 처리
+    if (e instanceof SyntaxError) {
+      console.error("JSON 파싱 실패:", e);
+      throw new Error("AI 응답을 파싱하는 데 실패했습니다. 응답이 유효한 JSON 형식이 아닙니다.");
+    }
+    // 기타 에러
+    throw e;
   }
 }
 
@@ -71,12 +181,24 @@ async function runJsonPrompt<T>(prompt: string, model: string, schema?: any): Pr
  * @returns AI가 생성한 텍스트 문자열을 담은 Promise<string>
  */
 async function runTextPrompt(prompt: string, model: string): Promise<string> {
-  const response = await getAIClient().models.generateContent({
-    model,
-    contents: prompt,
-  });
-  // `response.text` 속성을 통해 AI가 생성한 텍스트 응답을 직접 반환합니다.
-  return response.text;
+  try {
+    const response = await getAIClient().models.generateContent({
+      model,
+      contents: prompt,
+    });
+    // `response.text` 속성을 통해 AI가 생성한 텍스트 응답을 받아 정규화한 후 반환합니다.
+    return normalizeMarkdown(response.text);
+  } catch (e: any) {
+    // API 에러 처리
+    if (e?.error?.code === 500) {
+      throw new Error("Gemini API 서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.");
+    }
+    if (e?.error?.code === 429) {
+      throw new Error("API 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.");
+    }
+    // 기타 에러
+    throw e;
+  }
 }
 
 // --- 각 기능별 API 호출 함수들 (Wrapper Functions) ---
@@ -129,9 +251,11 @@ export const findWordsForDescription = async (description: string, customPrompt:
 
 // [AI 계산기]
 export const calculateExpression = async (expression: string, customPrompt: string | undefined | null, model: string): Promise<string> => {
-  const effectivePrompt = customPrompt ?? "다음 수식을 계산하고, 풀이 과정을 단계별로 설명해줘. 최종 답은 '결과:' 뒤에, 풀이 과정은 '풀이:' 뒤에 명확하게 구분해서 표시해줘. 수식: {expression}";
+  const effectivePrompt = customPrompt ?? "다음 수식을 계산하고, 풀이 과정을 단계별로 설명해줘.\n\n**출력 형식 (반드시 이 형식을 따를 것):**\n결과: [여기에 최종 답을 한 줄로 작성. 무리수나 루트가 포함된 경우 근사값을 소수점 5자리까지 함께 표시 (예: 3√3 ≈ 5.19615)]\n\n풀이:\n[여기에 단계별 풀이 과정 작성]\n\n**중요**: 모든 수학 기호와 수식은 반드시 LaTeX 형식으로 $ 기호로 감싸서 표시해줘 (예: $\\sqrt{27}$, $3\\sqrt{3}$, $x^2$, $\\frac{7}{3}$).\n\n수식: {expression}";
   const prompt = effectivePrompt.replace('{expression}', expression);
-  return runTextPrompt(prompt, model);
+  const result = await runTextPrompt(prompt, model);
+  // AI가 LaTeX를 쓰지 않은 경우 자동 변환
+  return convertMathToLatex(result);
 };
 
 // [안내 문자 생성]
