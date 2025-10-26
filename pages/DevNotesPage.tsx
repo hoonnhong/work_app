@@ -557,6 +557,11 @@ const NoteModal: React.FC<ModalProps> = ({ note, onSave, onClose }) => {
     // 태그 배열을 쉼표로 구분된 문자열로 변환하여 입력 필드에서 편집하기 쉽게 만듭니다.
     const [formData, setFormData] = useState({...note, tags: note.tags.join(', ')});
 
+    // note prop이 변경될 때마다 formData 업데이트
+    useEffect(() => {
+        setFormData({...note, tags: note.tags.join(', ')});
+    }, [note]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
