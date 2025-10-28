@@ -48,7 +48,15 @@ export const useGemini = <T,>(apiFunc: GeminiApiFunction<T>) => {
       setData(result);
     } catch (e) {
       // 오류가 발생하면, 에러 객체에서 메시지를 추출하여 `error` 상태에 저장합니다.
-      const errorMessage = e instanceof Error ? e.message : '알 수 없는 오류가 발생했습니다.';
+      let errorMessage = '알 수 없는 오류가 발생했습니다.';
+      if (e instanceof Error) {
+        errorMessage = e.message;
+      } else if (typeof e === 'string') {
+        errorMessage = e;
+      } else if (e && typeof e === 'object') {
+        // 객체인 경우 message 속성이 있는지 확인
+        errorMessage = (e as any).message || JSON.stringify(e);
+      }
       setError(errorMessage);
     } finally {
       // API 호출이 성공하든 실패하든, 마지막에는 항상 로딩 상태를 끝냅니다.

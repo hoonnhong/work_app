@@ -61,7 +61,8 @@ function convertMathToLatex(text: string): string {
   });
 
   // 1. sqrt(숫자) -> $\sqrt{숫자}$ (단, $로 감싸지지 않은 경우만)
-  text = text.replace(/(?<!\$)sqrt\((\d+)\)(?!\$)/g, '$\\sqrt{$1}$');
+  // 공백 허용: sqrt ( 27 ) 또는 sqrt(27) 모두 변환
+  text = text.replace(/(?<!\$)sqrt\s*\(\s*(\d+)\s*\)(?!\$)/g, '$\\sqrt{$1}$');
 
   // 2. 숫자^숫자 -> $숫자^{숫자}$ (단, $로 감싸지지 않은 경우만)
   text = text.replace(/(?<!\$)(\d+)\^(\d+)(?!\$)/g, '$$$1^{$2}$$');
@@ -169,8 +170,13 @@ async function runJsonPrompt<T>(prompt: string, model: string, schema?: any): Pr
       console.error("JSON 파싱 실패:", e);
       throw new Error("AI 응답을 파싱하는 데 실패했습니다. 응답이 유효한 JSON 형식이 아닙니다.");
     }
-    // 기타 에러
-    throw e;
+    // 기타 에러 - Error 객체로 변환하여 던지기
+    if (e instanceof Error) {
+      throw e;
+    }
+    // 일반 객체나 문자열인 경우 Error 객체로 변환
+    const errorMsg = typeof e === 'string' ? e : (e?.message || JSON.stringify(e));
+    throw new Error(errorMsg);
   }
 }
 
@@ -185,9 +191,24 @@ async function runTextPrompt(prompt: string, model: string): Promise<string> {
     const response = await getAIClient().models.generateContent({
       model,
       contents: prompt,
+      config: {
+        temperature: 0.1, // 낮은 temperature로 일관성 있는 응답 생성
+      },
     });
+    // response.text가 문자열이 아닌 경우 처리
+    let textContent: string;
+    if (typeof response.text === 'string') {
+      textContent = response.text;
+    } else if (response.text && typeof response.text === 'object') {
+      // response.text가 객체인 경우 JSON.stringify로 변환
+      console.warn('⚠️ response.text가 문자열이 아님:', response.text);
+      textContent = JSON.stringify(response.text);
+    } else {
+      throw new Error('AI 응답을 텍스트로 변환할 수 없습니다.');
+    }
+
     // `response.text` 속성을 통해 AI가 생성한 텍스트 응답을 받아 정규화한 후 반환합니다.
-    return normalizeMarkdown(response.text);
+    return normalizeMarkdown(textContent);
   } catch (e: any) {
     // API 에러 처리
     if (e?.error?.code === 500) {
@@ -196,8 +217,13 @@ async function runTextPrompt(prompt: string, model: string): Promise<string> {
     if (e?.error?.code === 429) {
       throw new Error("API 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.");
     }
-    // 기타 에러
-    throw e;
+    // 기타 에러 - Error 객체로 변환하여 던지기
+    if (e instanceof Error) {
+      throw e;
+    }
+    // 일반 객체나 문자열인 경우 Error 객체로 변환
+    const errorMsg = typeof e === 'string' ? e : (e?.message || JSON.stringify(e));
+    throw new Error(errorMsg);
   }
 }
 
@@ -283,15 +309,61 @@ export const generatePrompt = async (details: { request: string; variables: stri
 
 // [뉴스 브리핑]
 export const getNewsBriefing = async (details: { topic: string; period: string; country: string; mediaOutlet?: string; articleCount: number }, customPrompt: string | undefined | null, model: string): Promise<NewsArticle[]> => {
-    const effectivePrompt = customPrompt ?? "다음 조건에 맞는 최신 뉴스를 요약해서 알려줘. 각 뉴스는 날짜, 언론사, 제목, 핵심 요약, 원문 URL을 포함해야 해.\n\n---\n{details}\n---";
-    const detailsString = `
+    // 현재 날짜 정보를 가져옵니다 (오늘 날짜 기준으로 상대적 기간 계산에 사용)
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth() + 1;
+    const day = today.getDate();
+    const todayString = `${year}년 ${month}월 ${day}일`;
+
+    // "지난 7일" 같은 상대 기간을 구체적인 날짜로 변환
+    let periodString = details.period;
+    if (details.period.includes('지난') && details.period.includes('일')) {
+      const match = details.period.match(/지난\s*(\d+)\s*일/);
+      if (match) {
+        const days = parseInt(match[1]);
+        const startDate = new Date(today);
+        startDate.setDate(startDate.getDate() - days);
+        const startYear = startDate.getFullYear();
+        const startMonth = startDate.getMonth() + 1;
+        const startDay = startDate.getDate();
+        periodString = `${startYear}년 ${startMonth}월 ${startDay}일 ~ ${year}년 ${month}월 ${day}일 (최근 ${days}일간)`;
+      }
+    }
+
+    // 커스텀 프롬프트가 있으면 변수 치환, 없으면 기본 프롬프트 사용
+    let prompt: string;
+    if (customPrompt) {
+      // 커스텀 프롬프트의 변수들을 실제 값으로 치환
+      prompt = customPrompt
+        .replace(/{today}/g, todayString)
+        .replace(/{topic}/g, details.topic)
+        .replace(/{period}/g, periodString)
+        .replace(/{country}/g, details.country)
+        .replace(/{mediaOutlet}/g, details.mediaOutlet || '지정되지 않음')
+        .replace(/{articleCount}/g, String(details.articleCount));
+    } else {
+      // 기본 프롬프트: 변수 없이 직접 값을 포함
+      prompt = `**매우 중요**: 반드시 ${todayString} 기준으로 뉴스를 검색해야 합니다. 절대 과거 데이터(2024년 등)를 반환하지 마세요.
+
+다음 조건에 맞는 최신 뉴스를 요약해서 알려줘. 각 뉴스는 날짜, 언론사, 제목, 핵심 요약, 원문 URL을 포함해야 해.
+
+**검색 조건:**
+- 오늘 날짜 (기준일): ${todayString}
 - 주제: ${details.topic}
-- 기간: ${details.period}
+- 기간: ${periodString}
 - 국가: ${details.country}
-- 특정 언론사: ${details.mediaOutlet || '지정되지 않음'}
-- 기사 수: ${details.articleCount}
-`;
-    const prompt = effectivePrompt.replace('{details}', detailsString);
+${details.mediaOutlet ? `- 특정 언론사: ${details.mediaOutlet}` : ''}
+- 기사 수: ${details.articleCount}개
+
+**중요**: 반드시 정확히 ${details.articleCount}개의 기사를 반환해야 합니다. 위 주제("${details.topic}")와 관련된 뉴스만 찾아주세요.`;
+    }
+
+    // 디버깅: 프롬프트와 기사 개수를 콘솔에 출력
+    console.log('=== News Briefing Debug ===');
+    console.log('Requested article count:', details.articleCount);
+    console.log('Final prompt:', prompt);
+    console.log('========================');
     
     // 뉴스 기사 응답에 대한 JSON 스키마를 정의합니다.
     // 이렇게 하면 AI가 더 안정적으로 우리가 원하는 구조의 JSON을 반환하게 됩니다.

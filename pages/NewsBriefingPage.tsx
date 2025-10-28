@@ -13,11 +13,11 @@ import { ExclamationTriangleIcon } from '../components/Icons';
 
 const NewsBriefingPage: React.FC = () => {
   const [details, setDetails] = useState({
-    topic: '최신 IT 기술',
-    period: '지난 7일',
-    country: '대한민국',
+    topic: '',
+    period: '',
+    country: '',
     mediaOutlet: '',
-    articleCount: 5,
+    articleCount: 0, // 빈 값으로 시작 (placeholder가 5를 표시)
   });
   const { prompts } = usePrompts();
   const { selectedModel } = useModel();
@@ -25,19 +25,32 @@ const NewsBriefingPage: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
-    setDetails({ 
-        ...details, 
-        [name]: type === 'number' ? parseInt(value, 10) || 0 : value 
+    setDetails({
+        ...details,
+        [name]: type === 'number' ? parseInt(value, 10) || 0 : value
     });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!details.topic.trim() || !details.period.trim() || !details.country.trim()) {
-        alert('주제, 기간, 국가는 필수 입력 항목입니다.');
+    if (!details.topic.trim() || !details.period.trim()) {
+        alert('주제와 기간은 필수 입력 항목입니다.');
         return;
     }
-    execute(details, prompts.newsBriefing, selectedModel);
+
+    // 기본값 적용
+    const submissionDetails = {
+      ...details,
+      country: details.country.trim() || '대한민국',
+      articleCount: details.articleCount || 5
+    };
+
+    console.log('=== NewsBriefingPage Submit ===');
+    console.log('Submission details:', submissionDetails);
+    console.log('Article count:', submissionDetails.articleCount);
+    console.log('==============================');
+
+    execute(submissionDetails, prompts.newsBriefing, selectedModel);
   };
 
   return (
@@ -58,27 +71,79 @@ const NewsBriefingPage: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="topic" className="block text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">주제</label>
-              <input type="text" id="topic" name="topic" value={details.topic} onChange={handleChange} className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500" />
+              <label htmlFor="topic" className="block text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
+                주제 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="topic"
+                name="topic"
+                value={details.topic}
+                onChange={handleChange}
+                placeholder="예: 최신 IT 기술, K-pop 산업 동향"
+                className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              />
             </div>
             <div>
-              <label htmlFor="period" className="block text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">기간</label>
-              <input type="text" id="period" name="period" value={details.period} onChange={handleChange} className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500" />
+              <label htmlFor="period" className="block text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
+                기간 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="period"
+                name="period"
+                value={details.period}
+                onChange={handleChange}
+                placeholder="예: 지난 7일, 2025-01-01 ~ 2025-01-07"
+                className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              />
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                날짜(예: 2024-07-20), 기간(예: 2024-07-01 ~ 2024-07-07), 또는 상대적 기간(예: 지난 7일)을 입력할 수 있습니다.
+                상대적 기간(예: 지난 7일) 또는 구체적 날짜를 입력할 수 있습니다.
               </p>
             </div>
             <div>
-              <label htmlFor="country" className="block text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">언론 국가</label>
-              <input type="text" id="country" name="country" value={details.country} onChange={handleChange} className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500" />
+              <label htmlFor="country" className="block text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
+                언론 국가 <span className="text-slate-400 text-sm">(기본값: 대한민국)</span>
+              </label>
+              <input
+                type="text"
+                id="country"
+                name="country"
+                value={details.country}
+                onChange={handleChange}
+                placeholder="대한민국"
+                className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              />
             </div>
             <div>
-              <label htmlFor="mediaOutlet" className="block text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">특정 언론사 (선택)</label>
-              <input type="text" id="mediaOutlet" name="mediaOutlet" value={details.mediaOutlet} onChange={handleChange} className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500" />
+              <label htmlFor="mediaOutlet" className="block text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
+                특정 언론사 <span className="text-slate-400 text-sm">(선택사항)</span>
+              </label>
+              <input
+                type="text"
+                id="mediaOutlet"
+                name="mediaOutlet"
+                value={details.mediaOutlet}
+                onChange={handleChange}
+                placeholder="예: 조선일보, CNN"
+                className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              />
             </div>
             <div>
-              <label htmlFor="articleCount" className="block text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">브리핑 기사 갯수</label>
-              <input type="number" id="articleCount" name="articleCount" value={details.articleCount} onChange={handleChange} min="1" className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500" />
+              <label htmlFor="articleCount" className="block text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
+                브리핑 기사 개수 <span className="text-slate-400 text-sm">(기본값: 5개)</span>
+              </label>
+              <input
+                type="number"
+                id="articleCount"
+                name="articleCount"
+                value={details.articleCount}
+                onChange={handleChange}
+                min="1"
+                max="20"
+                placeholder="5"
+                className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              />
             </div>
           </div>
           <button

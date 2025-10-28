@@ -35,108 +35,100 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ content 
   // `useEffect`는 특정 값(여기서는 `content`)이 바뀔 때마다 특정 작업을 수행하게 합니다.
   // 이 `useEffect`는 `content` props가 바뀔 때마다 마크다운을 파싱하고 소독합니다.
   useEffect(() => {
-    // LaTeX 수식을 마크다운 파싱으로부터 보호하는 함수
-    // marked가 $...$를 잘못 처리하는 것을 방지하기 위해 임시 플레이스홀더로 변환합니다.
-    // 플레이스홀더는 §§...§§ 형식을 사용하여 마크다운이 건드리지 않도록 합니다.
-    const protectMath = (text: string): { protectedText: string; mathExpressions: string[] } => {
-      const mathExpressions: string[] = [];
-      let protectedText = text;
+    // 비동기 함수를 useEffect 내부에 정의하고 즉시 실행합니다.
+    const processContent = async () => {
+      // LaTeX 수식을 마크다운 파싱으로부터 보호하는 함수
+      // marked가 $...$를 잘못 처리하는 것을 방지하기 위해 임시 플레이스홀더로 변환합니다.
+      // 플레이스홀더는 §§...§§ 형식을 사용하여 마크다운이 건드리지 않도록 합니다.
+      const protectMath = (text: string): { protectedText: string; mathExpressions: string[] } => {
+        const mathExpressions: string[] = [];
+        let protectedText = text;
 
-      // Display math 보호 ($$...$$) - 먼저 처리해야 $$가 두 개의 $로 인식되는 것을 방지
-      protectedText = protectedText.replace(/\$\$([\s\S]+?)\$\$/g, (match) => {
-        mathExpressions.push(match);
-        return `§§MATHBLOCK${mathExpressions.length - 1}§§`;
-      });
+        // Display math 보호 ($$...$$) - 먼저 처리해야 $$가 두 개의 $로 인식되는 것을 방지
+        protectedText = protectedText.replace(/\$\$([\s\S]+?)\$\$/g, (match) => {
+          mathExpressions.push(match);
+          return `§§MATHBLOCK${mathExpressions.length - 1}§§`;
+        });
 
-      // Inline math 보호 ($...$)
-      protectedText = protectedText.replace(/\$([^\$\n]+?)\$/g, (match) => {
-        mathExpressions.push(match);
-        return `§§MATHINLINE${mathExpressions.length - 1}§§`;
-      });
+        // Inline math 보호 ($...$)
+        protectedText = protectedText.replace(/\$([^\$\n]+?)\$/g, (match) => {
+          mathExpressions.push(match);
+          return `§§MATHINLINE${mathExpressions.length - 1}§§`;
+        });
 
-      // LaTeX 괄호 스타일도 보호 \[...\] 및 \(...\)
-      protectedText = protectedText.replace(/\\\[([\s\S]+?)\\\]/g, (match) => {
-        mathExpressions.push(match);
-        return `§§MATHBRACKETBLOCK${mathExpressions.length - 1}§§`;
-      });
+        // LaTeX 괄호 스타일도 보호 \[...\] 및 \(...\)
+        protectedText = protectedText.replace(/\\\[([\s\S]+?)\\\]/g, (match) => {
+          mathExpressions.push(match);
+          return `§§MATHBRACKETBLOCK${mathExpressions.length - 1}§§`;
+        });
 
-      protectedText = protectedText.replace(/\\\(([^\)]+?)\\\)/g, (match) => {
-        mathExpressions.push(match);
-        return `§§MATHBRACKETINLINE${mathExpressions.length - 1}§§`;
-      });
+        protectedText = protectedText.replace(/\\\(([^\)]+?)\\\)/g, (match) => {
+          mathExpressions.push(match);
+          return `§§MATHBRACKETINLINE${mathExpressions.length - 1}§§`;
+        });
 
-      return { protectedText, mathExpressions };
-    };
+        return { protectedText, mathExpressions };
+      };
 
-    // 보호된 수식을 복원하는 함수
-    const restoreMath = (html: string, mathExpressions: string[]): string => {
-      let restored = html;
-      mathExpressions.forEach((expr, i) => {
-        // 모든 플레이스홀더 패턴을 원래 수식으로 복원
-        // 정규식을 사용하여 전역 치환 (g 플래그)
-        restored = restored.replace(new RegExp(`§§MATHBLOCK${i}§§`, 'g'), expr);
-        restored = restored.replace(new RegExp(`§§MATHINLINE${i}§§`, 'g'), expr);
-        restored = restored.replace(new RegExp(`§§MATHBRACKETBLOCK${i}§§`, 'g'), expr);
-        restored = restored.replace(new RegExp(`§§MATHBRACKETINLINE${i}§§`, 'g'), expr);
-      });
-      return restored;
-    };
+      // 보호된 수식을 복원하는 함수
+      const restoreMath = (html: string, mathExpressions: string[]): string => {
+        let restored = html;
+        mathExpressions.forEach((expr, i) => {
+          // 모든 플레이스홀더 패턴을 원래 수식으로 복원
+          // 정규식을 사용하여 전역 치환 (g 플래그)
+          restored = restored.replace(new RegExp(`§§MATHBLOCK${i}§§`, 'g'), expr);
+          restored = restored.replace(new RegExp(`§§MATHINLINE${i}§§`, 'g'), expr);
+          restored = restored.replace(new RegExp(`§§MATHBRACKETBLOCK${i}§§`, 'g'), expr);
+          restored = restored.replace(new RegExp(`§§MATHBRACKETINLINE${i}§§`, 'g'), expr);
+        });
+        return restored;
+      };
 
-    // 1. 수식 보호: 마크다운 파싱 전에 LaTeX 수식을 플레이스홀더로 변환
-    const { protectedText: protectedContent, mathExpressions } = protectMath(content);
-    console.log('📝 원본 텍스트:', content.substring(0, 200));
-    console.log('🔒 보호된 텍스트:', protectedContent.substring(0, 200));
-    console.log('💾 저장된 수식:', mathExpressions);
+      // 1. 수식 보호: 마크다운 파싱 전에 LaTeX 수식을 플레이스홀더로 변환
+      const { protectedText: protectedContent, mathExpressions } = protectMath(content);
 
-    // marked 라이브러리의 렌더러를 커스터마이징하여 테이블에 Tailwind CSS 클래스를 추가합니다.
-    const renderer = new marked.Renderer() as any;
+      // marked 라이브러리는 기본 설정 그대로 사용합니다.
+      // 테이블 스타일은 파싱 후 HTML 문자열을 직접 수정합니다.
 
-    // `table` 렌더러를 오버라이드하여 `<table>` 태그와 그 자식들에 스타일을 적용합니다.
-    renderer.table = (header: string, body: string) => {
-      return `<div class="overflow-x-auto"><table class="w-full text-sm text-left text-slate-500 dark:text-slate-400 my-4 border-collapse">
-                  <thead class="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-700 dark:text-slate-300">
-                      ${header}
-                  </thead>
-                  <tbody>
-                      ${body}
-                  </tbody>
-              </table></div>`;
-    };
+      // 2. `marked.parse`: 보호된 마크다운 텍스트를 HTML로 변환합니다.
+      const parsedHtml = marked.parse(protectedContent);
 
-    // `tablerow` 렌더러를 오버라이드하여 `<tr>` 태그에 스타일을 적용합니다.
-    renderer.tablerow = (content: string) => {
-        return `<tr class="bg-white border-b dark:bg-slate-800 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600">${content}</tr>`;
-    };
-
-    // `tablecell` 렌더러를 오버라이드하여 `<th>`와 `<td>`에 스타일을 적용합니다.
-    renderer.tablecell = (content: string, flags: { header: boolean; align: 'center' | 'left' | 'right' | null; }) => {
-      if (flags.header) {
-        return `<th scope="col" class="px-6 py-3 border border-slate-200 dark:border-slate-600">${content}</th>`;
+      // parsedHtml이 Promise인 경우 처리
+      let htmlString: string;
+      if (parsedHtml instanceof Promise) {
+        htmlString = await parsedHtml;
+      } else if (typeof parsedHtml === 'string') {
+        htmlString = parsedHtml;
+      } else {
+        console.error('❌ parsedHtml이 예상치 못한 타입:', parsedHtml);
+        htmlString = String(parsedHtml);
       }
-      return `<td class="px-6 py-4 border border-slate-200 dark:border-slate-600">${content}</td>`;
+
+      // 3. 수식 복원: 플레이스홀더를 원래 LaTeX 수식으로 되돌립니다.
+      let restoredHtml = restoreMath(htmlString, mathExpressions);
+
+      // 4. 테이블 스타일링: HTML 문자열에서 테이블 태그를 찾아 Tailwind CSS 클래스를 추가합니다.
+      restoredHtml = restoredHtml
+        .replace(/<table>/g, '<div class="overflow-x-auto"><table class="w-full text-sm text-left text-slate-500 dark:text-slate-400 my-4 border-collapse">')
+        .replace(/<\/table>/g, '</table></div>')
+        .replace(/<thead>/g, '<thead class="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-700 dark:text-slate-300">')
+        .replace(/<tr>/g, '<tr class="bg-white border-b dark:bg-slate-800 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600">')
+        .replace(/<th>/g, '<th scope="col" class="px-6 py-3 border border-slate-200 dark:border-slate-600">')
+        .replace(/<td>/g, '<td class="px-6 py-4 border border-slate-200 dark:border-slate-600">');
+
+      // 5. `DOMPurify.sanitize`: 변환된 HTML에서 악성 스크립트 등을 제거하여 안전하게 만듭니다.
+      // KaTeX 수학 공식이 제대로 작동하도록 필요한 속성과 태그를 허용합니다.
+      const cleanHtml = DOMPurify.sanitize(restoredHtml, {
+        ADD_TAGS: ['span', 'annotation', 'semantics', 'mtext', 'mn', 'mo', 'mi', 'mspace', 'mrow', 'msqrt', 'mtable', 'mtr', 'mtd', 'math'],
+        ADD_ATTR: ['class', 'style', 'aria-hidden', 'xmlns']
+      });
+
+      // 6. `setSanitizedContent`: 안전해진 HTML을 상태에 저장합니다. 이 상태 변경으로 인해 컴포넌트가 리렌더링됩니다.
+      setSanitizedContent(cleanHtml);
     };
 
-    // 커스터마이징한 렌더러를 `marked`에 적용합니다.
-    marked.setOptions({ renderer });
-
-    // 2. `marked.parse`: 보호된 마크다운 텍스트를 HTML로 변환합니다.
-    const parsedHtml = marked.parse(protectedContent);
-    console.log('🔄 파싱된 HTML:', (parsedHtml as string).substring(0, 200));
-
-    // 3. 수식 복원: 플레이스홀더를 원래 LaTeX 수식으로 되돌립니다.
-    const restoredHtml = restoreMath(parsedHtml as string, mathExpressions);
-    console.log('🔓 복원된 HTML:', restoredHtml.substring(0, 200));
-
-    // 4. `DOMPurify.sanitize`: 변환된 HTML에서 악성 스크립트 등을 제거하여 안전하게 만듭니다.
-    // KaTeX 수학 공식이 제대로 작동하도록 필요한 속성과 태그를 허용합니다.
-    const cleanHtml = DOMPurify.sanitize(restoredHtml, {
-      ADD_TAGS: ['span', 'annotation', 'semantics', 'mtext', 'mn', 'mo', 'mi', 'mspace', 'mrow', 'msqrt', 'mtable', 'mtr', 'mtd', 'math'],
-      ADD_ATTR: ['class', 'style', 'aria-hidden', 'xmlns']
-    });
-    console.log('🧼 소독된 HTML:', cleanHtml.substring(0, 200));
-
-    // 5. `setSanitizedContent`: 안전해진 HTML을 상태에 저장합니다. 이 상태 변경으로 인해 컴포넌트가 리렌더링됩니다.
-    setSanitizedContent(cleanHtml);
+    // 비동기 함수 실행
+    processContent();
   }, [content]); // `content` props가 변경될 때만 이 effect를 다시 실행합니다.
 
   // 이 `useEffect`는 `sanitizedContent`가 바뀐 후에 수학 공식 렌더링과 코드 블록 복사 버튼 추가를 담당합니다.
@@ -149,12 +141,11 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ content 
     let intervalId: number | undefined;
     let timeoutId: number | undefined;
 
-    const renderMath = () => {        
+    const renderMath = () => {
       let rendered = false;
       try {
           // KaTeX 라이브러리의 `renderMathInElement` 함수가 로드되었는지 확인합니다.
           if (window.renderMathInElement) {
-              console.log('🔍 KaTeX 렌더링 시작...');
               // DOM 요소 안의 수학 공식(예: $E=mc^2$)을 찾아 렌더링합니다.
               window.renderMathInElement(contentElement, {
                   delimiters: [
@@ -166,7 +157,6 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ content 
                   throwOnError: false, // 렌더링 오류가 발생해도 중단되지 않도록 설정합니다.
                   strict: false // 엄격 모드를 비활성화하여 다양한 수식 형식 허용
               });
-              console.log('✅ KaTeX 렌더링 완료');
               rendered = true;
           }
       } catch (error) {
@@ -211,7 +201,6 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ content 
     // KaTeX 라이브러리가 로드되었는지 100ms 간격으로 확인하는 함수 (폴링)
     const checkForKatex = () => {
         if (window.katex && window.renderMathInElement) {
-            console.log('✅ KaTeX 라이브러리 로드 확인됨, 렌더링 시도.');
             if (intervalId) clearInterval(intervalId);
             if (timeoutId) clearTimeout(timeoutId);
 
@@ -227,12 +216,11 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ content 
     // KaTeX 라이브러리 로드를 기다리기 위해 폴링을 시작합니다.
     intervalId = window.setInterval(checkForKatex, 200);
 
-    // 10초 후에도 로드되지 않으면 폴링을 중단하는 타임아웃을 설정합니다. (5초 -> 10초로 증가)
+    // 10초 후에도 로드되지 않으면 폴링을 중단하는 타임아웃을 설정합니다.
     timeoutId = window.setTimeout(() => {
         if(intervalId) clearInterval(intervalId);
         if (!window.katex || !window.renderMathInElement) {
-             console.error('❌ KaTeX 라이브러리 로딩에 실패하여 수학 공식이 렌더링되지 않았습니다.');
-             console.log('💡 페이지를 새로고침해주세요.');
+             console.error('❌ KaTeX 라이브러리 로딩 실패. 페이지를 새로고침해주세요.');
         }
     }, 10000);
 
