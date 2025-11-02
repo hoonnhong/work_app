@@ -73,7 +73,7 @@ export const spellCheck = async (text: string, customPrompt: string | undefined 
 
 // [글쓰기 도우미] 단어 비교
 export const compareWords = async (words: string[], customPrompt: string | undefined | null, model: string): Promise<string> => {
-  const wordsList = words.map((w, i) => `'${w}'`).join(', ');
+  const wordsList = words.map((w) => `'${w}'`).join(', ');
   const defaultPrompt = words.length === 2
     ? `두 단어 '{word1}'와(과) '{word2}'의 차이점을 주요 특징, 사용 예시, 뉘앙스 관점에서 비교 설명해줘.`
     : `다음 단어들 {wordsList}의 차이점을 주요 특징, 사용 예시, 뉘앙스 관점에서 비교 설명해줘.`;
@@ -115,9 +115,9 @@ export const findWordsForDescription = async (description: string, customPrompt:
 };
 
 // [AI 계산기]
-export const calculateWithAI = async (problem: string, customPrompt: string | undefined | null, model: string): Promise<string> => {
-  const effectivePrompt = customPrompt ?? `다음 수학 문제를 단계별로 풀이하고, 최종 답을 명확하게 제시해줘:\n\n{problem}`;
-  const prompt = effectivePrompt.replace(/{problem}/g, problem);
+export const calculateWithAI = async (expression: string, customPrompt: string | undefined | null, model: string): Promise<string> => {
+  const effectivePrompt = customPrompt ?? `다음 수식을 계산하고, 풀이 과정을 단계별로 설명해줘.\n\n**출력 형식 (반드시 이 형식을 따를 것):**\n결과: [여기에 최종 답을 한 줄로 작성]\n\n풀이:\n[여기에 단계별 풀이 과정 작성]\n\n수식: {expression}`;
+  const prompt = effectivePrompt.replace(/{expression}/g, expression);
   return callGeminiFunction<string>(prompt, model, 'text');
 };
 
