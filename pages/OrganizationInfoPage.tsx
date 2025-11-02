@@ -17,7 +17,9 @@ import {
   ClipboardDocumentIcon,
   KeyIcon,
   BanknotesIcon,
-  BuildingLibraryIcon
+  BuildingLibraryIcon,
+  Squares2X2Icon,
+  TableCellsIcon
 } from '../components/Icons';
 import Loader from '../components/Loader';
 import {
@@ -29,9 +31,11 @@ import { encrypt, decrypt, isEncrypted } from '../utils/encryption';
 
 // 탭 컴포넌트
 type TabType = '계좌정보' | '사업자정보' | '비밀번호';
+type ViewMode = 'card' | 'table';
 
 const OrganizationInfoPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('계좌정보');
+  const [viewMode, setViewMode] = useState<ViewMode>('card');
   const [isLoading, setIsLoading] = useState(true);
 
   // 각 카테고리별 데이터
@@ -217,8 +221,8 @@ const OrganizationInfoPage: React.FC = () => {
         </nav>
       </div>
 
-      {/* 추가 버튼 */}
-      <div className="mb-6">
+      {/* 추가 버튼 및 뷰 모드 토글 */}
+      <div className="mb-6 flex justify-between items-center">
         <button
           onClick={() => openModal(activeTab)}
           className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
@@ -226,12 +230,39 @@ const OrganizationInfoPage: React.FC = () => {
           <PlusIcon className="h-5 w-5" />
           {activeTab} 추가
         </button>
+
+        {/* 뷰 모드 토글 */}
+        <div className="flex gap-2 bg-slate-200 dark:bg-slate-700 p-1 rounded-lg">
+          <button
+            onClick={() => setViewMode('card')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded transition-colors ${
+              viewMode === 'card'
+                ? 'bg-white dark:bg-slate-800 text-primary-600 dark:text-primary-400 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            <Squares2X2Icon className="h-4 w-4" />
+            <span className="text-sm font-medium">카드</span>
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded transition-colors ${
+              viewMode === 'table'
+                ? 'bg-white dark:bg-slate-800 text-primary-600 dark:text-primary-400 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            <TableCellsIcon className="h-4 w-4" />
+            <span className="text-sm font-medium">표</span>
+          </button>
+        </div>
       </div>
 
       {/* 컨텐츠 영역 */}
       {activeTab === '계좌정보' && (
         <BankAccountList
           accounts={bankAccounts}
+          viewMode={viewMode}
           onEdit={(item) => openModal('계좌정보', item)}
           onDelete={(id) => handleDelete('계좌정보', id)}
           onCopy={copyToClipboard}
@@ -244,6 +275,7 @@ const OrganizationInfoPage: React.FC = () => {
       {activeTab === '사업자정보' && (
         <BusinessInfoList
           businessInfos={businessInfos}
+          viewMode={viewMode}
           onEdit={(item) => openModal('사업자정보', item)}
           onDelete={(id) => handleDelete('사업자정보', id)}
           onCopy={copyToClipboard}
@@ -253,6 +285,7 @@ const OrganizationInfoPage: React.FC = () => {
       {activeTab === '비밀번호' && (
         <PasswordList
           passwords={passwords}
+          viewMode={viewMode}
           onEdit={(item) => openModal('비밀번호', item)}
           onDelete={(id) => handleDelete('비밀번호', id)}
           onCopy={copyToClipboard}
@@ -278,15 +311,99 @@ const OrganizationInfoPage: React.FC = () => {
 // 계좌 정보 리스트
 const BankAccountList: React.FC<{
   accounts: BankAccountInfo[];
+  viewMode: ViewMode;
   onEdit: (item: BankAccountInfo) => void;
   onDelete: (id: string) => void;
   onCopy: (text: string, isEncrypted: boolean) => void;
   onTogglePassword: (id: string, password: string) => void;
   revealedPasswords: Set<string>;
   masterPassword: string;
-}> = ({ accounts, onEdit, onDelete, onCopy, onTogglePassword, revealedPasswords, masterPassword }) => {
+}> = ({ accounts, viewMode, onEdit, onDelete, onCopy, onTogglePassword, revealedPasswords, masterPassword }) => {
   if (accounts.length === 0) {
     return <EmptyState message="등록된 계좌 정보가 없습니다." />;
+  }
+
+  if (viewMode === 'table') {
+    return (
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white dark:bg-slate-800 rounded-lg shadow-md">
+          <thead className="bg-slate-100 dark:bg-slate-700">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">계좌명</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">은행</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">계좌번호</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">비밀번호</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">작업</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+            {accounts.map((account) => (
+              <tr key={account.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800 dark:text-slate-200">
+                  {account.accountName}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
+                  <div className="flex items-center gap-2">
+                    {account.bankName}
+                    <button onClick={() => onCopy(account.bankName, false)} className="p-1 hover:text-primary-600">
+                      <ClipboardDocumentIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
+                  <div className="flex items-center gap-2">
+                    {account.accountNumber}
+                    <button onClick={() => onCopy(account.accountNumber, false)} className="p-1 hover:text-primary-600">
+                      <ClipboardDocumentIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
+                  {account.accountPassword ? (
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono">
+                        {revealedPasswords.has(account.id!.toString())
+                          ? decrypt(account.accountPassword, masterPassword)
+                          : '••••••'}
+                      </span>
+                      <button
+                        onClick={() => onTogglePassword(account.id!.toString(), account.accountPassword!)}
+                        className="p-1 hover:text-primary-600"
+                      >
+                        {revealedPasswords.has(account.id!.toString())
+                          ? <EyeSlashIcon className="h-4 w-4" />
+                          : <EyeIcon className="h-4 w-4" />
+                        }
+                      </button>
+                      {revealedPasswords.has(account.id!.toString()) && (
+                        <button
+                          onClick={() => onCopy(decrypt(account.accountPassword!, masterPassword), false)}
+                          className="p-1 hover:text-primary-600"
+                        >
+                          <ClipboardDocumentIcon className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-slate-400">-</span>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <div className="flex gap-2">
+                    <button onClick={() => onEdit(account)} className="p-1 hover:text-primary-600">
+                      <PencilSquareIcon className="h-5 w-5" />
+                    </button>
+                    <button onClick={() => onDelete(account.id!.toString())} className="p-1 hover:text-red-600">
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
   }
 
   return (
@@ -365,14 +482,110 @@ const BankAccountList: React.FC<{
 // 사업자 정보 리스트
 const BusinessInfoList: React.FC<{
   businessInfos: BusinessInfo[];
+  viewMode: ViewMode;
   onEdit: (item: BusinessInfo) => void;
   onDelete: (id: string) => void;
   onCopy: (text: string, isEncrypted: boolean) => void;
-}> = ({ businessInfos, onEdit, onDelete, onCopy }) => {
+}> = ({ businessInfos, viewMode, onEdit, onDelete, onCopy }) => {
   if (businessInfos.length === 0) {
     return <EmptyState message="등록된 사업자 정보가 없습니다." />;
   }
 
+  // 표 형식 뷰
+  if (viewMode === 'table') {
+    return (
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white dark:bg-slate-800 rounded-lg shadow-md">
+          <thead className="bg-slate-100 dark:bg-slate-700">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                사업자명
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                사업자번호
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                법인번호
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                설명
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                작업
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+            {businessInfos.map((info) => (
+              <tr key={info.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    <BuildingLibraryIcon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                    <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                      {info.businessName}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-slate-800 dark:text-slate-200">
+                      {info.businessNumber}
+                    </span>
+                    <button
+                      onClick={() => onCopy(info.businessNumber, false)}
+                      className="p-1 text-slate-500 hover:text-primary-600 dark:hover:text-primary-400"
+                    >
+                      <ClipboardDocumentIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {info.corporateNumber ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-800 dark:text-slate-200">
+                        {info.corporateNumber}
+                      </span>
+                      <button
+                        onClick={() => onCopy(info.corporateNumber!, false)}
+                        className="p-1 text-slate-500 hover:text-primary-600 dark:hover:text-primary-400"
+                      >
+                        <ClipboardDocumentIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-slate-400 dark:text-slate-500">-</span>
+                  )}
+                </td>
+                <td className="px-6 py-4">
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    {info.description || '-'}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => onEdit(info)}
+                      className="p-1 text-slate-500 hover:text-primary-600 dark:hover:text-primary-400"
+                    >
+                      <PencilSquareIcon className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(info.id.toString())}
+                      className="p-1 text-slate-500 hover:text-red-600 dark:hover:text-red-400"
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  // 카드 형식 뷰
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {businessInfos.map((info) => (
@@ -420,17 +633,150 @@ const BusinessInfoList: React.FC<{
 // 비밀번호 리스트
 const PasswordList: React.FC<{
   passwords: PasswordInfo[];
+  viewMode: ViewMode;
   onEdit: (item: PasswordInfo) => void;
   onDelete: (id: string) => void;
   onCopy: (text: string, isEncrypted: boolean) => void;
   onTogglePassword: (id: string, password: string) => void;
   revealedPasswords: Set<string>;
   masterPassword: string;
-}> = ({ passwords, onEdit, onDelete, onCopy, onTogglePassword, revealedPasswords, masterPassword }) => {
+}> = ({ passwords, viewMode, onEdit, onDelete, onCopy, onTogglePassword, revealedPasswords, masterPassword }) => {
   if (passwords.length === 0) {
     return <EmptyState message="등록된 비밀번호 정보가 없습니다." />;
   }
 
+  // 표 형식 뷰
+  if (viewMode === 'table') {
+    return (
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white dark:bg-slate-800 rounded-lg shadow-md">
+          <thead className="bg-slate-100 dark:bg-slate-700">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                서비스명
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                아이디
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                비밀번호
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                URL
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                설명
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                작업
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+            {passwords.map((pwd) => (
+              <tr key={pwd.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    <KeyIcon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                    <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                      {pwd.serviceName}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {pwd.username ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-800 dark:text-slate-200">
+                        {pwd.username}
+                      </span>
+                      <button
+                        onClick={() => onCopy(pwd.username!, false)}
+                        className="p-1 text-slate-500 hover:text-primary-600 dark:hover:text-primary-400"
+                      >
+                        <ClipboardDocumentIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-slate-400 dark:text-slate-500">-</span>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {pwd.password ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-800 dark:text-slate-200 font-mono">
+                        {revealedPasswords.has(pwd.id.toString())
+                          ? decrypt(pwd.password, masterPassword)
+                          : '••••••••'}
+                      </span>
+                      <button
+                        onClick={() => onTogglePassword(pwd.id.toString(), pwd.password!)}
+                        className="p-1 text-slate-500 hover:text-primary-600 dark:hover:text-primary-400"
+                      >
+                        {revealedPasswords.has(pwd.id.toString())
+                          ? <EyeSlashIcon className="h-4 w-4" />
+                          : <EyeIcon className="h-4 w-4" />
+                        }
+                      </button>
+                      {revealedPasswords.has(pwd.id.toString()) && (
+                        <button
+                          onClick={() => onCopy(decrypt(pwd.password!, masterPassword), false)}
+                          className="p-1 text-slate-500 hover:text-primary-600 dark:hover:text-primary-400"
+                        >
+                          <ClipboardDocumentIcon className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-slate-400 dark:text-slate-500">-</span>
+                  )}
+                </td>
+                <td className="px-6 py-4">
+                  {pwd.url ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-800 dark:text-slate-200 truncate max-w-xs">
+                        {pwd.url}
+                      </span>
+                      <button
+                        onClick={() => onCopy(pwd.url!, false)}
+                        className="p-1 text-slate-500 hover:text-primary-600 dark:hover:text-primary-400"
+                      >
+                        <ClipboardDocumentIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-slate-400 dark:text-slate-500">-</span>
+                  )}
+                </td>
+                <td className="px-6 py-4">
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    {pwd.description || '-'}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => onEdit(pwd)}
+                      className="p-1 text-slate-500 hover:text-primary-600 dark:hover:text-primary-400"
+                    >
+                      <PencilSquareIcon className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(pwd.id.toString())}
+                      className="p-1 text-slate-500 hover:text-red-600 dark:hover:text-red-400"
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  // 카드 형식 뷰
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {passwords.map((pwd) => (

@@ -95,6 +95,9 @@ const TextToolsPage: React.FC = () => {
 const RefineTextTool: React.FC = () => {
   const [text, setText] = useState('');
   const [tone, setTone] = useState('전문적으로');
+  const [customTone, setCustomTone] = useState('');
+  const [exampleText, setExampleText] = useState('');
+  const [useCustomTone, setUseCustomTone] = useState(false);
   const { prompts } = usePrompts();
   const { selectedModel } = useModel();
   const { data, isLoading, error, execute } = useGemini<RefinedTextResult>(refineText);
@@ -102,8 +105,11 @@ const RefineTextTool: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim()) return;
-    execute(text, tone, prompts.refine, selectedModel);
+    const finalTone = useCustomTone ? customTone : tone;
+    execute(text, finalTone, exampleText, prompts.refine, selectedModel);
   };
+
+  const presetTones = ['전문적으로', '친근하게', '간결하게', '설득력 있게'];
 
   return (
     <div>
@@ -111,20 +117,71 @@ const RefineTextTool: React.FC = () => {
         <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-md border border-slate-200 dark:border-slate-700">
             <ModelSelector />
             <form onSubmit={handleSubmit}>
-                <textarea
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder="다듬고 싶은 문장을 입력하세요."
-                    rows={5}
-                    className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500"
-                />
-                <div className="mt-4 flex flex-col sm:flex-row items-center gap-4">
-                    <select value={tone} onChange={(e) => setTone(e.target.value)} className="w-full sm:w-auto p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700">
-                        <option>전문적으로</option>
-                        <option>친근하게</option>
-                        <option>간결하게</option>
-                        <option>설득력 있게</option>
-                    </select>
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-2">다듬고 싶은 문장</label>
+                        <textarea
+                            value={text}
+                            onChange={(e) => setText(e.target.value)}
+                            placeholder="다듬고 싶은 문장을 입력하세요."
+                            rows={5}
+                            className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-2">톤/스타일</label>
+                        <div className="flex items-center gap-2 mb-2">
+                            <button
+                                type="button"
+                                onClick={() => setUseCustomTone(false)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium ${!useCustomTone ? 'bg-primary-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}
+                            >
+                                프리셋
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setUseCustomTone(true)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium ${useCustomTone ? 'bg-primary-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}
+                            >
+                                직접 입력
+                            </button>
+                        </div>
+                        {!useCustomTone ? (
+                            <select
+                                value={tone}
+                                onChange={(e) => setTone(e.target.value)}
+                                className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700"
+                            >
+                                {presetTones.map(t => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                        ) : (
+                            <input
+                                type="text"
+                                value={customTone}
+                                onChange={(e) => setCustomTone(e.target.value)}
+                                placeholder="예: 공손하면서도 전문적으로, 유머러스하게"
+                                className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500"
+                            />
+                        )}
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-2">
+                            예시 글 (선택사항)
+                            <span className="text-xs text-slate-500 dark:text-slate-400 ml-2">이 스타일을 참고하여 다듬습니다</span>
+                        </label>
+                        <textarea
+                            value={exampleText}
+                            onChange={(e) => setExampleText(e.target.value)}
+                            placeholder="참고할 글의 예시를 입력하세요. (비워두면 톤만 적용)"
+                            rows={3}
+                            className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500"
+                        />
+                    </div>
+                </div>
+
+                <div className="mt-4">
                     <button type="submit" disabled={isLoading} className="w-full sm:w-auto px-6 py-3 bg-primary-600 text-white font-medium rounded-md hover:bg-primary-700 disabled:bg-slate-400">
                         {isLoading ? '실행 중...' : '다듬기 실행'}
                     </button>
@@ -326,31 +383,47 @@ const WordRecommendation: React.FC = () => {
 
 // 4. 단어 비교 도구
 const CompareWordsTool: React.FC = () => {
-    const [word1, setWord1] = useState('');
-    const [word2, setWord2] = useState('');
+    const [wordsInput, setWordsInput] = useState('');
     const { prompts } = usePrompts();
     const { selectedModel } = useModel();
     const { data, isLoading, error, execute } = useGemini<string>(compareWords);
-  
+
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      if (!word1.trim() || !word2.trim()) return;
-      execute(word1, word2, prompts.compare, selectedModel);
+      if (!wordsInput.trim()) return;
+
+      // 쉼표로 구분하여 단어 배열 생성 (공백 제거)
+      const words = wordsInput.split(',').map(w => w.trim()).filter(w => w.length > 0);
+
+      if (words.length < 2) {
+        alert('비교할 단어를 최소 2개 이상 입력해주세요.');
+        return;
+      }
+
+      execute(words, prompts.compare, selectedModel);
     };
-  
+
     return (
       <div>
           <PromptEditor promptKey="compare" title="단어 비교 프롬프트" />
           <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-md border border-slate-200 dark:border-slate-700">
               <ModelSelector />
               <form onSubmit={handleSubmit}>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <input type="text" value={word1} onChange={e => setWord1(e.target.value)} placeholder="단어 1" className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700"/>
-                      <input type="text" value={word2} onChange={e => setWord2(e.target.value)} placeholder="단어 2" className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700"/>
+                  <div className="space-y-2">
+                      <input
+                          type="text"
+                          value={wordsInput}
+                          onChange={e => setWordsInput(e.target.value)}
+                          placeholder="비교할 단어들을 쉼표(,)로 구분하여 입력하세요. (예: 사과, 배, 귤)"
+                          className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500"
+                      />
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                          💡 2개 이상의 단어를 쉼표로 구분하여 입력하세요
+                      </p>
                   </div>
                   <div className="mt-4">
                       <button type="submit" disabled={isLoading} className="w-full sm:w-auto px-6 py-3 bg-primary-600 text-white font-medium rounded-md hover:bg-primary-700 disabled:bg-slate-400">
-                          {isLoading ? '비교 중...' : '두 단어 비교'}
+                          {isLoading ? '비교 중...' : '단어 비교'}
                       </button>
                   </div>
               </form>
