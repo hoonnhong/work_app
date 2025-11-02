@@ -73,7 +73,7 @@ const EmployeeModal: React.FC<{
     };
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-[60] p-4">
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <h2 className="text-2xl font-bold">{employee.id ? '구성원 정보 수정' : '새 구성원 추가'}</h2>
@@ -88,24 +88,28 @@ const EmployeeModal: React.FC<{
                 <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">구분 (중복 선택 가능)</label>
                     <div className="space-y-3 p-4 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700">
-                        {memberOptions && Object.entries(memberOptions.roleCategories).map(([key, category]) => (
-                            <div key={key}>
-                                <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">{category.label}</div>
-                                <div className="flex flex-wrap gap-3">
-                                    {category.roles.map(role => (
-                                        <label key={role} className="flex items-center space-x-2 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedRoles.includes(role)}
-                                                onChange={() => handleRoleToggle(role)}
-                                                className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                                            />
-                                            <span className="text-sm">{role}</span>
-                                        </label>
-                                    ))}
+                        {memberOptions ? (
+                            Object.entries(memberOptions.roleCategories).map(([key, category]) => (
+                                <div key={key}>
+                                    <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">{category.label}</div>
+                                    <div className="flex flex-wrap gap-3">
+                                        {category.roles.map(role => (
+                                            <label key={role} className="flex items-center space-x-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedRoles.includes(role)}
+                                                    onChange={() => handleRoleToggle(role)}
+                                                    className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                                                />
+                                                <span className="text-sm">{role}</span>
+                                            </label>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))
+                        ) : (
+                            <p className="text-sm text-slate-500 dark:text-slate-400">구분 옵션을 불러오는 중...</p>
+                        )}
                     </div>
                 </div>
 
@@ -120,7 +124,7 @@ const EmployeeModal: React.FC<{
                         className="mt-1 block w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700"
                     >
                         <option value="">선택하세요</option>
-                        {memberOptions && Object.entries(memberOptions.departmentCategories).map(([key, category]) => (
+                        {memberOptions && memberOptions.departmentCategories && Object.entries(memberOptions.departmentCategories).map(([key, category]) => (
                             <optgroup key={key} label={category.label}>
                                 {category.departments.map(dept => (
                                     <option key={dept} value={dept}>{dept}</option>
