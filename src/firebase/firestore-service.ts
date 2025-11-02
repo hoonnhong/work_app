@@ -17,6 +17,17 @@ import {
 import { db } from './config';
 import type { Member, Employee, Settlement, DevNote, FavoriteLink, MemberOptionsSettings } from '../../types';
 
+// Utility function to remove undefined values from an object
+function removeUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
+  const cleaned: any = {};
+  for (const key in obj) {
+    if (obj[key] !== undefined) {
+      cleaned[key] = obj[key];
+    }
+  }
+  return cleaned;
+}
+
 // Generic Firestore CRUD operations
 export class FirestoreService<T extends { id?: number | string }> {
   private collectionName: string;
@@ -62,7 +73,8 @@ export class FirestoreService<T extends { id?: number | string }> {
         ...data,
         createdAt: new Date().toISOString()
       };
-      const docRef = await addDoc(collection(db, this.collectionName), dataWithTimestamp);
+      const cleanedData = removeUndefined(dataWithTimestamp);
+      const docRef = await addDoc(collection(db, this.collectionName), cleanedData);
       return docRef.id;
     } catch (error) {
       console.error(`Error adding document to ${this.collectionName}:`, error);
@@ -78,7 +90,8 @@ export class FirestoreService<T extends { id?: number | string }> {
         ...data,
         createdAt: (data as any).createdAt || new Date().toISOString()
       };
-      await setDoc(docRef, dataWithTimestamp);
+      const cleanedData = removeUndefined(dataWithTimestamp);
+      await setDoc(docRef, cleanedData);
     } catch (error) {
       console.error(`Error setting document ${id} in ${this.collectionName}:`, error);
       throw error;
@@ -89,7 +102,8 @@ export class FirestoreService<T extends { id?: number | string }> {
   async update(id: string, data: Partial<T>): Promise<void> {
     try {
       const docRef = doc(db, this.collectionName, id);
-      await updateDoc(docRef, data as any);
+      const cleanedData = removeUndefined(data as any);
+      await updateDoc(docRef, cleanedData);
     } catch (error) {
       console.error(`Error updating document ${id} in ${this.collectionName}:`, error);
       throw error;

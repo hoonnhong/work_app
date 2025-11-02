@@ -156,12 +156,16 @@ const DevNotesPage: React.FC = () => {
         setEditingNote(null);
       } else {
         // 새 노트 추가
-        const newNote = {
+        const newNote: any = {
           ...note,
           id: Date.now(),
           created_at: new Date().toISOString().split('T')[0],
           completed: false
         };
+        // undefined 값을 가진 필드 제거
+        if (newNote.category === undefined) delete newNote.category;
+        if (newNote.priority === undefined) delete newNote.priority;
+
         await devNoteService.setWithId(String(newNote.id), newNote);
         // 새 노트 추가 후에는 모달을 열린 상태로 유지하고 입력 필드만 초기화
         setEditingNote({
