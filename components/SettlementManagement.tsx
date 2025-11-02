@@ -431,7 +431,12 @@ const SettlementManagement: React.FC<{
     // Member Options 로드
     useEffect(() => {
         const unsubscribe = memberOptionsService.subscribe((data) => {
-            setMemberOptions(data);
+            if (data.length > 0) {
+                const settingsData = data.find((d: any) => d.id === 'memberOptions');
+                if (settingsData) {
+                    setMemberOptions(settingsData as MemberOptionsSettings);
+                }
+            }
         });
         return () => unsubscribe();
     }, []);
