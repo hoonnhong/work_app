@@ -20,6 +20,7 @@ import type { RefinedTextResult, SpellCheckResult } from '../types';
 import Loader from '../components/Loader';
 import { ExclamationTriangleIcon, ClipboardDocumentIcon, CheckIcon } from '../components/Icons';
 import MarkdownRenderer from '../components/MarkdownRenderer';
+import { handleTextareaKeyDown } from '../utils/formUtils';
 
 // 사용 가능한 도구들의 타입을 정의합니다.
 type Tool = 'refine' | 'spellCheck' | 'compare' | 'translate' | 'wordFinder';
@@ -123,7 +124,8 @@ const RefineTextTool: React.FC = () => {
                         <textarea
                             value={text}
                             onChange={(e) => setText(e.target.value)}
-                            placeholder="다듬고 싶은 문장을 입력하세요."
+                            onKeyDown={(e) => handleTextareaKeyDown(e, () => handleSubmit(e as any))}
+                            placeholder="다듬고 싶은 문장을 입력하세요. (Ctrl+Enter로 제출)"
                             rows={5}
                             className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500"
                         />
@@ -174,7 +176,8 @@ const RefineTextTool: React.FC = () => {
                         <textarea
                             value={exampleText}
                             onChange={(e) => setExampleText(e.target.value)}
-                            placeholder="참고할 글의 예시를 입력하세요. (비워두면 톤만 적용)"
+                            onKeyDown={(e) => handleTextareaKeyDown(e, () => handleSubmit(e as any))}
+                            placeholder="참고할 글의 예시를 입력하세요. (비워두면 톤만 적용, Ctrl+Enter로 제출)"
                             rows={3}
                             className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500"
                         />
@@ -236,7 +239,8 @@ const SpellCheckTool: React.FC = () => {
                   <textarea
                       value={text}
                       onChange={(e) => setText(e.target.value)}
-                      placeholder="맞춤법을 검사할 문장을 입력하세요."
+                      onKeyDown={(e) => handleTextareaKeyDown(e, () => handleSubmit(e as any))}
+                      placeholder="맞춤법을 검사할 문장을 입력하세요. (Ctrl+Enter로 제출)"
                       rows={5}
                       className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500"
                   />
@@ -366,7 +370,8 @@ const WordRecommendation: React.FC = () => {
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="찾고 싶은 단어나 표현을 자유롭게 묘사해주세요. (예: '오랫동안 해결되지 않던 문제가 마침내 풀렸을 때의 시원한 느낌')"
+          onKeyDown={(e) => handleTextareaKeyDown(e, () => handleSubmit(e as any))}
+          placeholder="찾고 싶은 단어나 표현을 자유롭게 묘사해주세요. (Ctrl+Enter로 제출)"
           rows={5}
           className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500"
         />
@@ -487,7 +492,8 @@ const TranslateTool: React.FC = () => {
                   <textarea
                       value={text}
                       onChange={(e) => setText(e.target.value)}
-                      placeholder="번역할 내용을 입력하세요."
+                      onKeyDown={(e) => handleTextareaKeyDown(e, () => handleSubmit(e as any))}
+                      placeholder="번역할 내용을 입력하세요. (Ctrl+Enter로 제출)"
                       rows={5}
                       className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500"
                   />

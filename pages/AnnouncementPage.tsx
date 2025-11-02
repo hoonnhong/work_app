@@ -17,6 +17,7 @@ import PromptEditor from '../components/PromptEditor'; // 프롬프트 수정 �
 import ModelSelector from '../components/ModelSelector'; // AI 모델 선택 컴포넌트
 import { useModel } from '../hooks/useModel'; // AI 모델 관리용 커스텀 훅
 import { ClipboardDocumentIcon, CheckIcon } from '../components/Icons'; // 아이콘
+import { handleTextareaKeyDown } from '../utils/formUtils'; // 텍스트에리어 키 다운 핸들러
 
 // AnnouncementPage 컴포넌트를 정의합니다.
 const AnnouncementPage: React.FC = () => {
@@ -97,8 +98,9 @@ const AnnouncementPage: React.FC = () => {
               name="핵심 정보" // `handleChange`에서 이 name을 키로 사용합니다.
               value={details['핵심 정보']}
               onChange={handleChange}
+              onKeyDown={(e) => handleTextareaKeyDown(e, () => handleSubmit(e as any))}
               rows={6}
-              placeholder="안내문에 포함될 핵심 내용을 모두 입력해주세요. (예: 주제, 대상, 날짜, 요청사항 등)"
+              placeholder="안내문에 포함될 핵심 내용을 모두 입력해주세요. (Ctrl+Enter로 제출)"
               className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition"
             />
           </div>
@@ -138,8 +140,9 @@ const AnnouncementPage: React.FC = () => {
               name="참고 예시글"
               value={details['참고 예시글']}
               onChange={handleChange}
+              onKeyDown={(e) => handleTextareaKeyDown(e, () => handleSubmit(e as any))}
               rows={4}
-              placeholder="원하는 결과물의 형식이나 톤을 보여주는 예시를 입력하면 AI가 더 잘 이해할 수 있습니다."
+              placeholder="원하는 결과물의 형식이나 톤을 보여주는 예시를 입력하면 AI가 더 잘 이해할 수 있습니다. (Ctrl+Enter로 제출)"
               className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition"
             />
           </div>
