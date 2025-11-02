@@ -242,9 +242,9 @@ const SettlementModal: React.FC<{ settlement: Settlement; employees: Employee[];
                                              <button
                                                  type="button"
                                                  onClick={() => {
+                                                     onAddEmployee();
                                                      setIsDropdownOpen(false);
                                                      onClose();
-                                                     onAddEmployee();
                                                  }}
                                                  className="px-4 py-2 bg-primary-600 text-white text-sm rounded-md hover:bg-primary-700"
                                              >
