@@ -123,13 +123,26 @@ const InputField: React.FC<{ label: string; name: string; value: string | number
     </div>
 );
 
-const SettlementModal: React.FC<{ settlement: Settlement; employees: Employee[]; onSave: (settle: Settlement) => void; onClose: () => void; }> = ({ settlement, employees, onSave, onClose }) => {
+const SettlementModal: React.FC<{ settlement: Settlement; employees: Employee[]; onSave: (settle: Settlement) => void; onClose: () => void; onAddEmployee?: () => void; }> = ({ settlement, employees, onSave, onClose, onAddEmployee }) => {
     const [formData, setFormData] = useState<any>(settlement);
+    const [nameSearch, setNameSearch] = useState(settlement.name || '');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const nameDropdownRef = React.useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (nameDropdownRef.current && !nameDropdownRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     useEffect(() => {
         if (formData.category === '활동비' || formData.category === '강사비') {
             const fee = parseFloat(formData.fee) || 0;
-            
+
             let incomeTaxRate = 0;
             if (formData.incomeType === '사업소득') {
                 incomeTaxRate = 0.03;
@@ -139,7 +152,7 @@ const SettlementModal: React.FC<{ settlement: Settlement; employees: Employee[];
 
             const calculatedIncomeTax = fee > 0 ? Math.floor((fee * incomeTaxRate) / 10) * 10 : 0;
             const calculatedLocalTax = fee > 0 ? Math.floor((calculatedIncomeTax * 0.1) / 10) * 10 : 0;
-            
+
             if (calculatedIncomeTax !== formData.incomeTax || calculatedLocalTax !== formData.localTax) {
                  setFormData((prev: any) => ({
                     ...prev,
@@ -149,6 +162,22 @@ const SettlementModal: React.FC<{ settlement: Settlement; employees: Employee[];
             }
         }
     }, [formData.fee, formData.incomeType, formData.category, formData.incomeTax, formData.localTax]);
+
+    const filteredEmployees = employees.filter(emp =>
+        emp.name.toLowerCase().includes(nameSearch.toLowerCase())
+    );
+
+    const handleNameSelect = (name: string) => {
+        setNameSearch(name);
+        setFormData({ ...formData, name });
+        setIsDropdownOpen(false);
+    };
+
+    const handleNameInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setNameSearch(e.target.value);
+        setFormData({ ...formData, name: e.target.value });
+        setIsDropdownOpen(true);
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -179,21 +208,52 @@ const SettlementModal: React.FC<{ settlement: Settlement; employees: Employee[];
                  <h2 className="text-2xl font-bold">{settlement.id ? '정산 내역 수정' : '새 정산 추가'}</h2>
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                      <InputField label="날짜" name="date" type="date" value={formData.date} onChange={handleChange} required/>
-                     <div>
+                     <div className="relative" ref={nameDropdownRef}>
                          <label htmlFor="name" className="block text-sm font-medium text-slate-700 dark:text-slate-300">이름/거래처명</label>
-                         <select
+                         <input
                              id="name"
                              name="name"
-                             value={formData.name}
-                             onChange={handleChange}
+                             type="text"
+                             value={nameSearch}
+                             onChange={handleNameInputChange}
+                             onFocus={() => setIsDropdownOpen(true)}
+                             placeholder="이름을 입력하거나 선택하세요"
                              required
                              className="mt-1 block w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700"
-                         >
-                             <option value="">선택하세요</option>
-                             {employees.map(emp => (
-                                 <option key={emp.id} value={emp.name}>{emp.name}</option>
-                             ))}
-                         </select>
+                         />
+                         {isDropdownOpen && (
+                             <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                                 {filteredEmployees.length > 0 ? (
+                                     filteredEmployees.map(emp => (
+                                         <div
+                                             key={emp.id}
+                                             onClick={() => handleNameSelect(emp.name)}
+                                             className="px-3 py-2 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"
+                                         >
+                                             {emp.name}
+                                         </div>
+                                     ))
+                                 ) : (
+                                     <div className="px-3 py-4 text-center">
+                                         <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
+                                             검색 결과가 없습니다
+                                         </p>
+                                         {onAddEmployee && (
+                                             <button
+                                                 type="button"
+                                                 onClick={() => {
+                                                     onAddEmployee();
+                                                     setIsDropdownOpen(false);
+                                                 }}
+                                                 className="px-4 py-2 bg-primary-600 text-white text-sm rounded-md hover:bg-primary-700"
+                                             >
+                                                 + 구성원 추가하기
+                                             </button>
+                                         )}
+                                     </div>
+                                 )}
+                             </div>
+                         )}
                      </div>
                      <div>
                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">구분</label>
@@ -280,7 +340,7 @@ const settlementTableColumns = [
 
 // --- Main Component ---
 
-const SettlementManagement: React.FC<{ initialSettlements: Settlement[]; employees: Employee[] }> = ({ initialSettlements, employees }) => {
+const SettlementManagement: React.FC<{ initialSettlements: Settlement[]; employees: Employee[]; onAddEmployee?: () => void }> = ({ initialSettlements, employees, onAddEmployee }) => {
     const [settlements, setSettlements] = useState<Settlement[]>([]);
     const [filters, setFilters] = useState<{ date: string[], name: string[], category: string[], settlementType: string[] }>({ date: [], name: [], category: [], settlementType: [] });
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'date', direction: 'desc' });
@@ -650,7 +710,7 @@ const SettlementManagement: React.FC<{ initialSettlements: Settlement[]; employe
                  )}
             </div>
             {isModalOpen && editingItem && (
-                <SettlementModal settlement={editingItem} employees={employees} onSave={handleSave} onClose={() => setIsModalOpen(false)} />
+                <SettlementModal settlement={editingItem} employees={employees} onSave={handleSave} onClose={() => setIsModalOpen(false)} onAddEmployee={onAddEmployee} />
             )}
 
             {/* 일괄 등록 미리보기 모달 */}

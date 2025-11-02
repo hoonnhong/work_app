@@ -65,6 +65,15 @@ const HrManagementPage: React.FC = () => {
         };
     }, []);
 
+    const handleAddEmployeeFromSettlement = () => {
+        // 정산 탭에서 구성원 추가 버튼 클릭 시 구성원 목록 탭으로 전환
+        setActiveTab('employees');
+        // 약간의 지연 후 스크롤을 최상단으로 이동하여 사용자에게 탭 전환을 명확히 표시
+        setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 100);
+    };
+
     const renderContent = () => {
         if (activeTab === 'settings') {
             return <MemberOptionsManager />;
@@ -76,7 +85,7 @@ const HrManagementPage: React.FC = () => {
         if (activeTab === 'employees') {
             return <EmployeeManagement initialEmployees={employees} />;
         } else {
-            return <SettlementManagement initialSettlements={settlements} employees={employees} />;
+            return <SettlementManagement initialSettlements={settlements} employees={employees} onAddEmployee={handleAddEmployeeFromSettlement} />;
         }
     };
     
