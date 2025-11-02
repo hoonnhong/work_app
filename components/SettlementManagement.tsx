@@ -399,7 +399,13 @@ const settlementTableColumns = [
 
 // --- Main Component ---
 
-const SettlementManagement: React.FC<{ initialSettlements: Settlement[]; employees: Employee[]; onAddEmployee?: () => void }> = ({ initialSettlements, employees, onAddEmployee }) => {
+const SettlementManagement: React.FC<{
+    initialSettlements: Settlement[];
+    employees: Employee[];
+    onAddEmployee?: () => void;
+    pendingSettlementName?: string | null;
+    onClearPendingName?: () => void;
+}> = ({ initialSettlements, employees, onAddEmployee, pendingSettlementName, onClearPendingName }) => {
     const [settlements, setSettlements] = useState<Settlement[]>([]);
     const [filters, setFilters] = useState<{ date: string[], name: string[], category: string[], settlementType: string[] }>({ date: [], name: [], category: [], settlementType: [] });
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'date', direction: 'desc' });
@@ -439,6 +445,34 @@ const SettlementManagement: React.FC<{ initialSettlements: Settlement[]; employe
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isColumnSelectorOpen]);
+
+    // pendingSettlementName이 있으면 새 정산 모달을 자동으로 엽니다
+    useEffect(() => {
+        if (pendingSettlementName && !isModalOpen) {
+            const newSettlement: Settlement = {
+                id: 0,
+                date: new Date().toISOString().split('T')[0],
+                name: pendingSettlementName,
+                category: '직원',
+                salary: 0,
+                bonus: 0,
+                overtimePay: 0,
+                nationalPension: 0,
+                healthInsurance: 0,
+                employmentInsurance: 0,
+                longTermCareInsurance: 0,
+                pensionSupport: 0,
+                employmentSupport: 0,
+                incomeTax: 0,
+                localTax: 0
+            };
+            setEditingItem(newSettlement);
+            setIsModalOpen(true);
+            if (onClearPendingName) {
+                onClearPendingName();
+            }
+        }
+    }, [pendingSettlementName, isModalOpen, onClearPendingName]);
     
     const getSettlementType = useCallback((item: Settlement) => {
         if (item.category === '직원') return '근로소득';

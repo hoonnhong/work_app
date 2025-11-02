@@ -20,6 +20,7 @@ const HrManagementPage: React.FC = () => {
     const [settlements, setSettlements] = useState<Settlement[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [pendingSettlementName, setPendingSettlementName] = useState<string | null>(null);
 
     // Firestore 실시간 데이터 구독
     useEffect(() => {
@@ -65,6 +66,11 @@ const HrManagementPage: React.FC = () => {
         };
     }, []);
 
+    const handleNavigateToSettlement = (employeeName: string) => {
+        setPendingSettlementName(employeeName);
+        setActiveTab('settlements');
+    };
+
     const renderContent = () => {
         if (activeTab === 'settings') {
             return <MemberOptionsManager />;
@@ -74,9 +80,9 @@ const HrManagementPage: React.FC = () => {
         if (error) return <div className="text-center py-10 text-red-500">데이터 로딩 실패: {error}</div>;
 
         if (activeTab === 'employees') {
-            return <EmployeeManagement initialEmployees={employees} />;
+            return <EmployeeManagement initialEmployees={employees} onNavigateToSettlement={handleNavigateToSettlement} />;
         } else {
-            return <SettlementManagement initialSettlements={settlements} employees={employees} />;
+            return <SettlementManagement initialSettlements={settlements} employees={employees} pendingSettlementName={pendingSettlementName} onClearPendingName={() => setPendingSettlementName(null)} />;
         }
     };
     

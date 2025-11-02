@@ -119,7 +119,10 @@ const employeeTableColumns = [
 
 // --- Main Component ---
 
-const EmployeeManagement: React.FC<{ initialEmployees: Employee[] }> = ({ initialEmployees }) => {
+const EmployeeManagement: React.FC<{
+    initialEmployees: Employee[];
+    onNavigateToSettlement?: (employeeName: string) => void;
+}> = ({ initialEmployees, onNavigateToSettlement }) => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [memberOptions, setMemberOptions] = useState<MemberOptionsSettings | null>(null);
     const [filters, setFilters] = useState<{ name: string[], role: string[], department: string[], status: string }>({ name: [], role: [], department: [], status: 'all' });
@@ -242,6 +245,28 @@ const EmployeeManagement: React.FC<{ initialEmployees: Employee[] }> = ({ initia
             }
             setIsModalOpen(false);
             setEditingItem(null);
+        } catch (error) {
+            console.error('Failed to save employee:', error);
+            alert('구성원 저장에 실패했습니다.');
+        }
+    };
+
+    const handleSaveAndContinue = async (item: Employee) => {
+        try {
+            if (item.id) {
+                // 업데이트
+                await employeeService.update(String(item.id), item);
+            } else {
+                // 새로 추가
+                const newId = Date.now();
+                await employeeService.setWithId(String(newId), { ...item, id: newId });
+            }
+            setIsModalOpen(false);
+            setEditingItem(null);
+            // 정산 관리 탭으로 이동하고 새 정산 추가 모달 열기
+            if (onNavigateToSettlement) {
+                onNavigateToSettlement(item.name);
+            }
         } catch (error) {
             console.error('Failed to save employee:', error);
             alert('구성원 저장에 실패했습니다.');
@@ -485,7 +510,13 @@ const EmployeeManagement: React.FC<{ initialEmployees: Employee[] }> = ({ initia
                  )}
             </div>
             {isModalOpen && editingItem && (
-                <EmployeeModal employee={editingItem} onSave={handleSave} onClose={() => setIsModalOpen(false)} memberOptions={memberOptions} />
+                <EmployeeModal
+                    employee={editingItem}
+                    onSave={handleSave}
+                    onClose={() => setIsModalOpen(false)}
+                    memberOptions={memberOptions}
+                    onSaveAndContinue={onNavigateToSettlement ? handleSaveAndContinue : undefined}
+                />
             )}
 
             {/* 일괄 등록 미리보기 모달 */}
