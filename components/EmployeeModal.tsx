@@ -47,7 +47,8 @@ const EmployeeModal: React.FC<{
     onSave: (emp: Employee) => void;
     onClose: () => void;
     memberOptions: MemberOptionsSettings | null;
-}> = ({ employee, onSave, onClose, memberOptions }) => {
+    onSaveAndContinue?: (emp: Employee) => void;
+}> = ({ employee, onSave, onClose, memberOptions, onSaveAndContinue }) => {
     const [formData, setFormData] = useState({...employee});
     const [selectedRoles, setSelectedRoles] = useState<string[]>(employee.role || []);
 
@@ -70,6 +71,17 @@ const EmployeeModal: React.FC<{
             role: selectedRoles,
             isActive: formData.isActive !== undefined ? formData.isActive : true
         });
+    };
+
+    const handleSaveAndContinue = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (onSaveAndContinue) {
+            onSaveAndContinue({
+                ...formData,
+                role: selectedRoles,
+                isActive: formData.isActive !== undefined ? formData.isActive : true
+            });
+        }
     };
 
     return (
@@ -171,7 +183,10 @@ const EmployeeModal: React.FC<{
                 <TextAreaField label="기타 사항" name="notes" value={formData.notes} onChange={handleChange} />
                 <div className="flex justify-end space-x-2 pt-4">
                     <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 dark:bg-slate-600 rounded-md">취소</button>
-                    <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-md">저장</button>
+                    {onSaveAndContinue && (
+                        <button type="button" onClick={handleSaveAndContinue} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">정산 추가</button>
+                    )}
+                    <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">저장</button>
                 </div>
             </form>
         </div>

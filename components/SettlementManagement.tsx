@@ -212,6 +212,21 @@ const SettlementModal: React.FC<{ settlement: Settlement; employees: Employee[];
                 await employeeService.setWithId(String(newId), { ...newEmployee, id: newId });
             }
             setIsAddingEmployee(false);
+        } catch (error) {
+            console.error('Failed to save employee:', error);
+            alert('구성원 저장에 실패했습니다.');
+        }
+    };
+
+    const handleEmployeeSaveAndContinue = async (newEmployee: Employee) => {
+        try {
+            if (newEmployee.id) {
+                await employeeService.update(newEmployee.id, newEmployee);
+            } else {
+                const newId = Date.now();
+                await employeeService.setWithId(String(newId), { ...newEmployee, id: newId });
+            }
+            setIsAddingEmployee(false);
             // 새로 추가된 구성원의 이름을 자동으로 선택
             setNameSearch(newEmployee.name);
             setFormData({ ...formData, name: newEmployee.name });
@@ -242,6 +257,7 @@ const SettlementModal: React.FC<{ settlement: Settlement; employees: Employee[];
                 onSave={handleEmployeeSave}
                 onClose={() => setIsAddingEmployee(false)}
                 memberOptions={memberOptions}
+                onSaveAndContinue={handleEmployeeSaveAndContinue}
             />
         );
     }
