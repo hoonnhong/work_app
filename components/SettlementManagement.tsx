@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import type { Settlement, EmployeeSettlement, ClientSettlement, ActivitySettlement, Employee } from '../types';
+import type { Settlement, EmployeeSettlement, ClientSettlement, ActivitySettlement, Employee, MemberOptionsSettings } from '../types';
 import { PencilSquareIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, SelectorIcon, ClipboardDocumentIcon, CheckIcon } from './Icons';
-import { settlementService } from '../src/firebase/firestore-service';
+import { settlementService, employeeService, memberOptionsService } from '../src/firebase/firestore-service';
 import { downloadSettlementSampleExcel, parseSettlementExcelFile, validateSettlementExcelFile } from '../utils/settlementExcelUtils';
+import EmployeeModal from './EmployeeModal';
 
 
 // --- Helper & Sub-components ---
@@ -123,10 +124,11 @@ const InputField: React.FC<{ label: string; name: string; value: string | number
     </div>
 );
 
-const SettlementModal: React.FC<{ settlement: Settlement; employees: Employee[]; onSave: (settle: Settlement) => void; onClose: () => void; onAddEmployee?: () => void; }> = ({ settlement, employees, onSave, onClose, onAddEmployee }) => {
+const SettlementModal: React.FC<{ settlement: Settlement; employees: Employee[]; onSave: (settle: Settlement) => void; onClose: () => void; onAddEmployee?: () => void; memberOptions: MemberOptionsSettings | null; }> = ({ settlement, employees, onSave, onClose, onAddEmployee, memberOptions }) => {
     const [formData, setFormData] = useState<any>(settlement);
     const [nameSearch, setNameSearch] = useState(settlement.name || '');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isAddingEmployee, setIsAddingEmployee] = useState(false);
     const nameDropdownRef = React.useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -201,6 +203,49 @@ const SettlementModal: React.FC<{ settlement: Settlement; employees: Employee[];
         if (category === '활동비' || category === '강사비') setFormData({ ...base, incomeType: '사업소득', fee: 0, incomeTax: 0, localTax: 0 });
     };
 
+    const handleEmployeeSave = async (newEmployee: Employee) => {
+        try {
+            if (newEmployee.id) {
+                await employeeService.update(newEmployee.id, newEmployee);
+            } else {
+                const newId = Date.now();
+                await employeeService.setWithId(String(newId), { ...newEmployee, id: newId });
+            }
+            setIsAddingEmployee(false);
+            // 새로 추가된 구성원의 이름을 자동으로 선택
+            setNameSearch(newEmployee.name);
+            setFormData({ ...formData, name: newEmployee.name });
+        } catch (error) {
+            console.error('Failed to save employee:', error);
+            alert('구성원 저장에 실패했습니다.');
+        }
+    };
+
+    if (isAddingEmployee) {
+        const newEmployee: Employee = {
+            id: 0,
+            name: '',
+            role: [],
+            department: '',
+            email: '',
+            phone: '',
+            residentRegistrationNumber: '',
+            address: '',
+            bankName: '',
+            accountNumber: '',
+            isActive: true,
+            notes: ''
+        };
+        return (
+            <EmployeeModal
+                employee={newEmployee}
+                onSave={handleEmployeeSave}
+                onClose={() => setIsAddingEmployee(false)}
+                memberOptions={memberOptions}
+            />
+        );
+    }
+
     return (
        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -242,9 +287,8 @@ const SettlementModal: React.FC<{ settlement: Settlement; employees: Employee[];
                                              <button
                                                  type="button"
                                                  onClick={() => {
-                                                     onAddEmployee();
                                                      setIsDropdownOpen(false);
-                                                     onClose();
+                                                     setIsAddingEmployee(true);
                                                  }}
                                                  className="px-4 py-2 bg-primary-600 text-white text-sm rounded-md hover:bg-primary-700"
                                              >
@@ -357,11 +401,20 @@ const SettlementManagement: React.FC<{ initialSettlements: Settlement[]; employe
     const [isImporting, setIsImporting] = useState(false);
     const [importPreview, setImportPreview] = useState<Settlement[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [memberOptions, setMemberOptions] = useState<MemberOptionsSettings | null>(null);
 
     // Firestore 구독: initialSettlements가 변경될 때마다 업데이트
     useEffect(() => {
         setSettlements(initialSettlements);
     }, [initialSettlements]);
+
+    // Member Options 로드
+    useEffect(() => {
+        const unsubscribe = memberOptionsService.subscribe((data) => {
+            setMemberOptions(data);
+        });
+        return () => unsubscribe();
+    }, []);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -711,7 +764,7 @@ const SettlementManagement: React.FC<{ initialSettlements: Settlement[]; employe
                  )}
             </div>
             {isModalOpen && editingItem && (
-                <SettlementModal settlement={editingItem} employees={employees} onSave={handleSave} onClose={() => setIsModalOpen(false)} onAddEmployee={onAddEmployee} />
+                <SettlementModal settlement={editingItem} employees={employees} onSave={handleSave} onClose={() => setIsModalOpen(false)} onAddEmployee={onAddEmployee} memberOptions={memberOptions} />
             )}
 
             {/* 일괄 등록 미리보기 모달 */}
