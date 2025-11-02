@@ -18,7 +18,7 @@ import ModelSelector from '../components/ModelSelector';
 import { useModel } from '../hooks/useModel';
 import type { RefinedTextResult, SpellCheckResult } from '../types';
 import Loader from '../components/Loader';
-import { ExclamationTriangleIcon } from '../components/Icons';
+import { ExclamationTriangleIcon, ClipboardDocumentIcon, CheckIcon } from '../components/Icons';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 
 // 사용 가능한 도구들의 타입을 정의합니다.
@@ -437,16 +437,47 @@ const CompareWordsTool: React.FC = () => {
 const TranslateTool: React.FC = () => {
     const [text, setText] = useState('');
     const [targetLanguage, setTargetLanguage] = useState('English');
+    const [isCopied, setIsCopied] = useState(false);
     const { prompts } = usePrompts();
     const { selectedModel } = useModel();
     const { data, isLoading, error, execute } = useGemini<string>(translateText);
-  
+
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
       if (!text.trim()) return;
       execute(text, targetLanguage, prompts.translate, selectedModel);
     };
-  
+
+    const handleCopy = async () => {
+      if (!data) return;
+      try {
+        await navigator.clipboard.writeText(data);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+      } catch (err) {
+        console.error('복사 실패:', err);
+      }
+    };
+
+    const copyButton = data && !isLoading ? (
+      <button
+        onClick={handleCopy}
+        className="flex items-center gap-2 px-3 py-1.5 text-sm bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg transition-colors"
+      >
+        {isCopied ? (
+          <>
+            <CheckIcon className="h-4 w-4 text-green-600" />
+            <span>복사됨!</span>
+          </>
+        ) : (
+          <>
+            <ClipboardDocumentIcon className="h-4 w-4" />
+            <span>복사</span>
+          </>
+        )}
+      </button>
+    ) : null;
+
     return (
       <div>
           <PromptEditor promptKey="translate" title="번역 프롬프트" />
@@ -477,7 +508,7 @@ const TranslateTool: React.FC = () => {
                   </div>
               </form>
           </div>
-          <ResultDisplay isLoading={isLoading} error={error} data={data} title="번역 결과" />
+          <ResultDisplay isLoading={isLoading} error={error} data={data} title="번역 결과" actions={copyButton} />
       </div>
     );
 };
