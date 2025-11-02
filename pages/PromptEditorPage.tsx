@@ -191,28 +191,9 @@ const PromptGenerator: React.FC = () => {
 // '프롬프트 직접 편집' 탭의 컴포넌트
 const PromptManualEditor: React.FC = () => {
     const { prompts, savePrompts, isLoading } = usePrompts();
-    const [editablePrompts, setEditablePrompts] = useState<Prompts | null>(null);
+    const [selectedPromptKey, setSelectedPromptKey] = useState<keyof Prompts | ''>('');
+    const [editablePrompt, setEditablePrompt] = useState('');
     const [showSuccess, setShowSuccess] = useState(false);
-
-    useEffect(() => {
-        if (!isLoading) {
-            setEditablePrompts(prompts);
-        }
-    }, [prompts, isLoading]);
-
-    const handleChange = (key: keyof Prompts, value: string) => {
-        if (editablePrompts) {
-            setEditablePrompts({ ...editablePrompts, [key]: value });
-        }
-    };
-
-    const handleSave = () => {
-        if (editablePrompts) {
-            savePrompts(editablePrompts);
-            setShowSuccess(true);
-            setTimeout(() => setShowSuccess(false), 3000);
-        }
-    };
 
     const promptLabels: Record<keyof Prompts, string> = {
         refine: '문장 다듬기',
@@ -227,37 +208,85 @@ const PromptManualEditor: React.FC = () => {
         generatePrompt: 'AI 프롬프트 생성기'
     };
 
-    if (isLoading || !editablePrompts) {
+    // 드롭다운에서 프롬프트 선택 시 실행
+    const handleSelectPrompt = (key: keyof Prompts | '') => {
+        setSelectedPromptKey(key);
+        if (key) {
+            setEditablePrompt(prompts[key] || '');
+        } else {
+            setEditablePrompt('');
+        }
+    };
+
+    const handleChange = (value: string) => {
+        setEditablePrompt(value);
+    };
+
+    const handleSave = () => {
+        if (selectedPromptKey && editablePrompt) {
+            savePrompts({ ...prompts, [selectedPromptKey]: editablePrompt });
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 3000);
+        }
+    };
+
+    if (isLoading) {
         return <div className="flex justify-center items-center h-64"><Loader /></div>;
     }
 
     return (
         <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-md border border-slate-200 dark:border-slate-700">
             <div className="space-y-6">
-                {(Object.keys(editablePrompts) as Array<keyof Prompts>).map((key) => (
-                    <div key={key}>
-                        <label htmlFor={key} className="block text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            {promptLabels[key] || key} 프롬프트
+                {/* 프롬프트 선택 드롭다운 */}
+                <div>
+                    <label htmlFor="prompt-select" className="block text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        편집할 프롬프트 선택
+                    </label>
+                    <select
+                        id="prompt-select"
+                        value={selectedPromptKey}
+                        onChange={(e) => handleSelectPrompt(e.target.value as keyof Prompts | '')}
+                        className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500 transition"
+                    >
+                        <option value="">프롬프트를 선택하세요</option>
+                        {(Object.keys(prompts) as Array<keyof Prompts>).map((key) => (
+                            <option key={key} value={key}>
+                                {promptLabels[key] || key}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* 선택된 프롬프트 편집 영역 */}
+                {selectedPromptKey && (
+                    <div>
+                        <label htmlFor="prompt-editor" className="block text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            {promptLabels[selectedPromptKey] || selectedPromptKey} 프롬프트
                         </label>
                         <textarea
-                            id={key}
-                            value={editablePrompts[key]}
-                            onChange={(e) => handleChange(key, e.target.value)}
-                            rows={6}
-                            className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500 transition"
+                            id="prompt-editor"
+                            value={editablePrompt}
+                            onChange={(e) => handleChange(e.target.value)}
+                            rows={12}
+                            className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-primary-500 transition font-mono text-sm"
+                            placeholder="프롬프트 내용이 여기에 표시됩니다..."
                         />
                     </div>
-                ))}
+                )}
             </div>
-            <div className="mt-6 flex items-center justify-end gap-4">
-                {showSuccess && <div className="text-sm text-green-600 dark:text-green-400">저장되었습니다!</div>}
-                <button
-                    onClick={handleSave}
-                    className="px-6 py-3 bg-primary-600 text-white font-medium rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition"
-                >
-                    모든 프롬프트 저장
-                </button>
-            </div>
+
+            {/* 저장 버튼 */}
+            {selectedPromptKey && (
+                <div className="mt-6 flex items-center justify-end gap-4">
+                    {showSuccess && <div className="text-sm text-green-600 dark:text-green-400">저장되었습니다!</div>}
+                    <button
+                        onClick={handleSave}
+                        className="px-6 py-3 bg-primary-600 text-white font-medium rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition"
+                    >
+                        프롬프트 저장
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

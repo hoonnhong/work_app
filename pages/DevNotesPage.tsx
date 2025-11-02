@@ -351,9 +351,17 @@ const DevNotesPage: React.FC = () => {
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2 mb-2">
-                      <h3 className={`text-lg font-bold text-slate-800 dark:text-slate-100 ${note.completed ? 'line-through' : ''}`}>
-                        {note.title}
-                      </h3>
+                      <div className="flex items-start gap-2 flex-1">
+                        <input
+                          type="checkbox"
+                          checked={note.completed || false}
+                          onChange={() => handleToggleComplete(note)}
+                          className="mt-1 w-4 h-4 text-primary-600 bg-slate-100 border-slate-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600"
+                        />
+                        <h3 className={`text-lg font-bold text-slate-800 dark:text-slate-100 ${note.completed ? 'line-through' : ''}`}>
+                          {note.title}
+                        </h3>
+                      </div>
                       <div className="flex gap-1 flex-shrink-0">
                         {note.priority && (
                           <span className={`px-2 py-0.5 text-xs font-semibold rounded ${

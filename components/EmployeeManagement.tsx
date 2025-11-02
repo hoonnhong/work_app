@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { Employee, MemberOptionsSettings } from '../types';
 import { PencilSquareIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, SelectorIcon, ClipboardDocumentIcon, CheckIcon } from './Icons';
 import { employeeService, memberOptionsService } from '../src/firebase/firestore-service';
+import { downloadSampleExcel, parseExcelFile, validateExcelFile } from '../utils/excelUtils';
 
 // --- Helper & Sub-components ---
 
@@ -295,6 +296,9 @@ const EmployeeManagement: React.FC<{ initialEmployees: Employee[] }> = ({ initia
     const [isCopying, setIsCopying] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<Employee | null>(null);
+    const [isImporting, setIsImporting] = useState(false);
+    const [importPreview, setImportPreview] = useState<Employee[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Firestore 구독: initialEmployees가 변경될 때마다 업데이트
     useEffect(() => {
@@ -426,13 +430,68 @@ const EmployeeManagement: React.FC<{ initialEmployees: Employee[] }> = ({ initia
                 return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
             }).join(',')
         );
-        
+
         const csvContent = [header, ...rows].join('\n');
         const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = `employees_${new Date().toISOString().split('T')[0]}.csv`;
         link.click();
+    };
+
+    const handleDownloadSample = () => {
+        downloadSampleExcel();
+    };
+
+    const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        // 파일 유효성 검사
+        const validation = validateExcelFile(file);
+        if (!validation.valid) {
+            alert(validation.error);
+            return;
+        }
+
+        try {
+            setIsImporting(true);
+            const parsedEmployees = await parseExcelFile(file);
+            setImportPreview(parsedEmployees);
+        } catch (error) {
+            console.error('Failed to parse excel file:', error);
+            alert((error as Error).message || '엑셀 파일을 읽는 중 오류가 발생했습니다.');
+            setIsImporting(false);
+        } finally {
+            // input 초기화
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
+
+    const handleConfirmImport = async () => {
+        if (importPreview.length === 0) return;
+
+        try {
+            // 모든 구성원을 Firestore에 저장
+            for (const employee of importPreview) {
+                const newId = Date.now() + Math.random(); // 고유 ID 생성
+                await employeeService.setWithId(String(newId), { ...employee, id: newId });
+            }
+
+            alert(`${importPreview.length}명의 구성원이 성공적으로 등록되었습니다.`);
+            setImportPreview([]);
+            setIsImporting(false);
+        } catch (error) {
+            console.error('Failed to import employees:', error);
+            alert('구성원 일괄 등록 중 오류가 발생했습니다.');
+        }
+    };
+
+    const handleCancelImport = () => {
+        setImportPreview([]);
+        setIsImporting(false);
     };
 
     const handleCopySelected = () => {
@@ -475,9 +534,29 @@ const EmployeeManagement: React.FC<{ initialEmployees: Employee[] }> = ({ initia
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
                 <h3 className="text-xl font-semibold">구성원 목록</h3>
-                <button onClick={handleAddNew} className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">새 구성원 추가</button>
+                <div className="flex gap-2 flex-wrap">
+                    <button onClick={handleDownloadSample} className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">
+                        샘플 엑셀 다운로드
+                    </button>
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                    >
+                        엑셀 일괄 등록
+                    </button>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".xlsx,.xls"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                    />
+                    <button onClick={handleAddNew} className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">
+                        새 구성원 추가
+                    </button>
+                </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 <MultiSelectCombobox options={unique('name')} selected={filters.name} onChange={v => setFilters(f => ({...f, name: v}))} placeholder="이름 검색..." />
@@ -570,6 +649,62 @@ const EmployeeManagement: React.FC<{ initialEmployees: Employee[] }> = ({ initia
             </div>
             {isModalOpen && editingItem && (
                 <EmployeeModal employee={editingItem} onSave={handleSave} onClose={() => setIsModalOpen(false)} memberOptions={memberOptions} />
+            )}
+
+            {/* 일괄 등록 미리보기 모달 */}
+            {isImporting && importPreview.length > 0 && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+                        <h2 className="text-2xl font-bold mb-4">엑셀 일괄 등록 미리보기</h2>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                            {importPreview.length}명의 구성원이 등록됩니다. 아래 내용을 확인하고 진행해주세요.
+                        </p>
+
+                        <div className="flex-1 overflow-auto mb-4 border border-slate-300 dark:border-slate-600 rounded-md">
+                            <table className="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                                <thead className="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-700 dark:text-slate-300 sticky top-0">
+                                    <tr>
+                                        <th className="px-4 py-3">번호</th>
+                                        <th className="px-4 py-3">이름</th>
+                                        <th className="px-4 py-3">주민등록번호</th>
+                                        <th className="px-4 py-3">구분</th>
+                                        <th className="px-4 py-3">부서/활동</th>
+                                        <th className="px-4 py-3">이메일</th>
+                                        <th className="px-4 py-3">전화번호</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {importPreview.map((emp, idx) => (
+                                        <tr key={idx} className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600">
+                                            <td className="px-4 py-3">{idx + 1}</td>
+                                            <td className="px-4 py-3 font-medium">{emp.name}</td>
+                                            <td className="px-4 py-3">{emp.residentRegistrationNumber}</td>
+                                            <td className="px-4 py-3">{emp.role.join(', ')}</td>
+                                            <td className="px-4 py-3">{emp.department}</td>
+                                            <td className="px-4 py-3">{emp.email}</td>
+                                            <td className="px-4 py-3">{emp.phone}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="flex justify-end space-x-2 pt-4 border-t border-slate-300 dark:border-slate-600">
+                            <button
+                                onClick={handleCancelImport}
+                                className="px-6 py-2 bg-slate-200 dark:bg-slate-600 rounded-md hover:bg-slate-300 dark:hover:bg-slate-500"
+                            >
+                                취소
+                            </button>
+                            <button
+                                onClick={handleConfirmImport}
+                                className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                            >
+                                {importPreview.length}명 등록하기
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

@@ -15,6 +15,9 @@ import { PencilSquareIcon, TrashIcon } from '../components/Icons'; // 수정, �
 import Loader from '../components/Loader'; // 로딩 스피너
 import { favoriteUrlService } from '../src/firebase/firestore-service';
 
+// 뷰 모드 타입 정의
+type ViewMode = 'card' | 'table';
+
 // FavoriteLinksPage 컴포넌트를 정의합니다.
 const FavoriteLinksPage: React.FC = () => {
     // `useState` 훅을 사용하여 컴포넌트의 상태(state)를 관리합니다.
@@ -26,6 +29,10 @@ const FavoriteLinksPage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     // 4. `editingLink`: 현재 수정 중인 링크 정보를 저장합니다.
     const [editingLink, setEditingLink] = useState<FavoriteLink | null>(null);
+    // 5. `viewMode`: 카드형/표형식 뷰 모드를 저장합니다.
+    const [viewMode, setViewMode] = useState<ViewMode>('card');
+    // 6. `selectedCategory`: 필터링할 카테고리를 저장합니다.
+    const [selectedCategory, setSelectedCategory] = useState<string>('전체');
 
     // Firestore 실시간 데이터 구독
     useEffect(() => {
@@ -43,13 +50,27 @@ const FavoriteLinksPage: React.FC = () => {
         };
     }, []);
     
-    // `useMemo` 훅은 `links` 배열이 변경될 때만 링크들을 카테고리별로 다시 그룹핑합니다.
-    // 이렇게 하면 `links` 상태가 바뀌지 않는 불필요한 리렌더링 시에는 복잡한 계산을 건너뛸 수 있어 성능에 도움이 됩니다.
+    // 모든 카테고리 목록 추출
+    const allCategories = useMemo(() => {
+        const categorySet = new Set<string>();
+        links.forEach(link => categorySet.add(link.category));
+        return ['전체', ...Array.from(categorySet).sort()];
+    }, [links]);
+
+    // 필터링된 링크
+    const filteredLinks = useMemo(() => {
+        if (selectedCategory === '전체') {
+            return links;
+        }
+        return links.filter(link => link.category === selectedCategory);
+    }, [links, selectedCategory]);
+
+    // `useMemo` 훅은 `filteredLinks` 배열이 변경될 때만 링크들을 카테고리별로 다시 그룹핑합니다.
     const categories = useMemo(() => {
         // 링크들을 담을 빈 객체를 만듭니다. 예: { '개발': [...], '디자인': [...] }
         const grouped: { [key: string]: FavoriteLink[] } = {};
         // 모든 링크를 순회하면서
-        links.forEach(link => {
+        filteredLinks.forEach(link => {
             // 해당 링크의 카테고리가 아직 grouped 객체에 없으면, 빈 배열을 만들어줍니다.
             if (!grouped[link.category]) {
                 grouped[link.category] = [];
@@ -59,7 +80,7 @@ const FavoriteLinksPage: React.FC = () => {
         });
         // 그룹핑이 완료된 객체를 반환합니다.
         return grouped;
-    }, [links]); // `links` 배열이 변경될 때만 이 함수를 다시 실행합니다.
+    }, [filteredLinks]); // `filteredLinks` 배열이 변경될 때만 이 함수를 다시 실행합니다.
 
     // '수정' 아이콘 클릭 시 실행될 함수입니다.
     const handleEdit = (link: FavoriteLink) => {
@@ -112,46 +133,143 @@ const FavoriteLinksPage: React.FC = () => {
                 icon={ALL_NAV_LINKS.links.icon}
             />
 
-            <div className="flex flex-wrap justify-end mb-4 gap-2">
-                <button onClick={handleAddNew} className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors">새 링크 추가</button>
+            {/* 컨트롤 패널: 뷰 모드 전환, 카테고리 필터, 추가 버튼 */}
+            <div className="flex flex-wrap justify-between items-center mb-4 gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* 뷰 모드 전환 버튼 */}
+                    <div className="flex bg-slate-200 dark:bg-slate-700 rounded-lg p-1">
+                        <button
+                            onClick={() => setViewMode('card')}
+                            className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                                viewMode === 'card'
+                                    ? 'bg-white dark:bg-slate-600 text-primary-600 dark:text-primary-400 shadow'
+                                    : 'text-slate-600 dark:text-slate-300'
+                            }`}
+                        >
+                            카드형
+                        </button>
+                        <button
+                            onClick={() => setViewMode('table')}
+                            className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                                viewMode === 'table'
+                                    ? 'bg-white dark:bg-slate-600 text-primary-600 dark:text-primary-400 shadow'
+                                    : 'text-slate-600 dark:text-slate-300'
+                            }`}
+                        >
+                            표형식
+                        </button>
+                    </div>
+
+                    {/* 카테고리 필터 */}
+                    <select
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md text-sm"
+                    >
+                        {allCategories.map(category => (
+                            <option key={category} value={category}>{category}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* 새 링크 추가 버튼 */}
+                <button
+                    onClick={handleAddNew}
+                    className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
+                >
+                    새 링크 추가
+                </button>
             </div>
 
             {isLoading ? <Loader/> : (
-                <div className="space-y-8">
-                    {/* 카테고리가 하나라도 있으면 목록을 보여주고, 없으면 안내 메시지를 보여줍니다. */}
-                    {Object.keys(categories).length > 0 ? 
-                     // `Object.keys(categories)`로 카테고리 이름 배열을 만들고, 정렬한 뒤 순회합니다.
-                     Object.keys(categories).sort().map(category => (
-                        <div key={category}>
-                            <h3 className="text-2xl font-semibold mb-4 text-slate-800 dark:text-slate-100 border-b-2 border-primary-500 pb-2">{category}</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {/* 해당 카테고리에 속한 링크들을 순회하며 렌더링합니다. */}
-                                {categories[category].map(link => (
-                                    <div key={link.id} className="group relative bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md hover:shadow-lg transition-all border border-slate-200 dark:border-slate-700">
-                                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="block">
-                                            <h4 className="font-bold text-primary-600 dark:text-primary-400 group-hover:underline pr-12">{link.title}</h4>
-                                            <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{link.url}</p>
-                                        </a>
-                                        {/* 마우스를 올렸을 때만 수정/삭제 버튼이 보이도록 설정합니다. */}
-                                        <div className="absolute top-3 right-3 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => handleEdit(link)} className="p-1.5 bg-slate-100/80 dark:bg-slate-900/80 rounded-full text-blue-500 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                                <PencilSquareIcon className="h-4 w-4"/>
-                                            </button>
-                                            <button onClick={() => handleDelete(link.id)} className="p-1.5 bg-slate-100/80 dark:bg-slate-900/80 rounded-full text-red-500 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
-                                                <TrashIcon className="h-4 w-4"/>
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )) : (
+                <>
+                    {filteredLinks.length === 0 ? (
                         <div className="text-center py-16 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                            <p className="text-slate-500 dark:text-slate-400">저장된 링크가 없습니다.</p>
+                            <p className="text-slate-500 dark:text-slate-400">
+                                {selectedCategory !== '전체' ? `'${selectedCategory}' 카테고리에 링크가 없습니다.` : '저장된 링크가 없습니다.'}
+                            </p>
                             <p className="text-slate-500 dark:text-slate-400 mt-2">'새 링크 추가' 버튼을 눌러 시작하세요.</p>
                         </div>
+                    ) : viewMode === 'card' ? (
+                        // 카드형 뷰
+                        <div className="space-y-8">
+                            {Object.keys(categories).sort().map(category => (
+                                <div key={category}>
+                                    <h3 className="text-2xl font-semibold mb-4 text-slate-800 dark:text-slate-100 border-b-2 border-primary-500 pb-2">{category}</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {categories[category].map(link => (
+                                            <div key={link.id} className="group relative bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md hover:shadow-lg transition-all border border-slate-200 dark:border-slate-700">
+                                                <a href={link.url} target="_blank" rel="noopener noreferrer" className="block">
+                                                    <h4 className="font-bold text-primary-600 dark:text-primary-400 group-hover:underline pr-12">{link.title}</h4>
+                                                    <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{link.url}</p>
+                                                </a>
+                                                <div className="absolute top-3 right-3 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => handleEdit(link)} className="p-1.5 bg-slate-100/80 dark:bg-slate-900/80 rounded-full text-blue-500 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                                        <PencilSquareIcon className="h-4 w-4"/>
+                                                    </button>
+                                                    <button onClick={() => handleDelete(link.id)} className="p-1.5 bg-slate-100/80 dark:bg-slate-900/80 rounded-full text-red-500 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                                                        <TrashIcon className="h-4 w-4"/>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        // 표형식 뷰
+                        <div className="overflow-x-auto bg-white dark:bg-slate-800 rounded-lg shadow-md">
+                            <table className="w-full">
+                                <thead className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200">카테고리</th>
+                                        <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200">제목</th>
+                                        <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200">URL</th>
+                                        <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200 w-24">작업</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                                    {filteredLinks.map(link => (
+                                        <tr key={link.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                                            <td className="px-4 py-3">
+                                                <span className="px-2 py-1 text-xs font-medium bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 rounded-full">
+                                                    {link.category}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-slate-900 dark:text-slate-100 font-medium">
+                                                <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:underline">
+                                                    {link.title}
+                                                </a>
+                                            </td>
+                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 text-sm truncate max-w-xs">
+                                                {link.url}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <div className="flex space-x-2">
+                                                    <button
+                                                        onClick={() => handleEdit(link)}
+                                                        className="text-blue-500 hover:text-blue-700"
+                                                        title="수정"
+                                                    >
+                                                        <PencilSquareIcon className="h-5 w-5"/>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(link.id)}
+                                                        className="text-red-500 hover:text-red-700"
+                                                        title="삭제"
+                                                    >
+                                                        <TrashIcon className="h-5 w-5"/>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     )}
-                </div>
+                </>
             )}
 
 

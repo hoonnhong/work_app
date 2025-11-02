@@ -15,7 +15,7 @@ import {
   DocumentData
 } from 'firebase/firestore';
 import { db } from './config';
-import type { Member, Employee, Settlement, DevNote, FavoriteLink, MemberOptionsSettings } from '../../types';
+import type { Member, Employee, Settlement, DevNote, FavoriteLink, MemberOptionsSettings, BankAccountInfo, BusinessInfo, PasswordInfo } from '../../types';
 
 // Utility function to remove undefined values from an object
 function removeUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
@@ -159,6 +159,11 @@ export const promptService = new FirestoreService<Prompt>('prompts');
 
 // Member options service (for managing role and department options)
 export const memberOptionsService = new FirestoreService<MemberOptionsSettings>('settings');
+
+// Organization info services (for managing organization information)
+export const bankAccountService = new FirestoreService<BankAccountInfo>('bank_accounts');
+export const businessInfoService = new FirestoreService<BusinessInfo>('business_info');
+export const passwordInfoService = new FirestoreService<PasswordInfo>('password_info');
 
 // Export deleteField for use in components
 export { deleteField };

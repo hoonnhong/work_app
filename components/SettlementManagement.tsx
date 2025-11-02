@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import type { Settlement, EmployeeSettlement, ClientSettlement, ActivitySettlement, Employee } from '../types';
 import { PencilSquareIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, SelectorIcon, ClipboardDocumentIcon, CheckIcon } from './Icons';
 import { settlementService } from '../src/firebase/firestore-service';
+import { downloadSettlementSampleExcel, parseSettlementExcelFile, validateSettlementExcelFile } from '../utils/settlementExcelUtils';
 
 
 // --- Helper & Sub-components ---
@@ -292,6 +293,9 @@ const SettlementManagement: React.FC<{ initialSettlements: Settlement[]; employe
     const [isCopying, setIsCopying] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<Settlement | null>(null);
+    const [isImporting, setIsImporting] = useState(false);
+    const [importPreview, setImportPreview] = useState<Settlement[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Firestore 구독: initialSettlements가 변경될 때마다 업데이트
     useEffect(() => {
@@ -450,13 +454,68 @@ const SettlementManagement: React.FC<{ initialSettlements: Settlement[]; employe
                 return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
             }).join(',')
         );
-        
+
         const csvContent = [header, ...rows].join('\n');
         const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = `settlements_${new Date().toISOString().split('T')[0]}.csv`;
         link.click();
+    };
+
+    const handleDownloadSample = () => {
+        downloadSettlementSampleExcel();
+    };
+
+    const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        // 파일 유효성 검사
+        const validation = validateSettlementExcelFile(file);
+        if (!validation.valid) {
+            alert(validation.error);
+            return;
+        }
+
+        try {
+            setIsImporting(true);
+            const parsedSettlements = await parseSettlementExcelFile(file);
+            setImportPreview(parsedSettlements);
+        } catch (error) {
+            console.error('Failed to parse settlement excel file:', error);
+            alert((error as Error).message || '엑셀 파일을 읽는 중 오류가 발생했습니다.');
+            setIsImporting(false);
+        } finally {
+            // input 초기화
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
+
+    const handleConfirmImport = async () => {
+        if (importPreview.length === 0) return;
+
+        try {
+            // 모든 정산 내역을 Firestore에 저장
+            for (const settlement of importPreview) {
+                const newId = Date.now() + Math.random(); // 고유 ID 생성
+                await settlementService.setWithId(String(newId), { ...settlement, id: newId });
+            }
+
+            alert(`${importPreview.length}건의 정산 내역이 성공적으로 등록되었습니다.`);
+            setImportPreview([]);
+            setIsImporting(false);
+        } catch (error) {
+            console.error('Failed to import settlements:', error);
+            alert('정산 내역 일괄 등록 중 오류가 발생했습니다.');
+        }
+    };
+
+    const handleCancelImport = () => {
+        setImportPreview([]);
+        setIsImporting(false);
     };
 
     const handleSelectItem = (id: number) => {
@@ -483,9 +542,29 @@ const SettlementManagement: React.FC<{ initialSettlements: Settlement[]; employe
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
                 <h3 className="text-xl font-semibold">정산 관리</h3>
-                <button onClick={handleAddNew} className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">새 정산 추가</button>
+                <div className="flex gap-2 flex-wrap">
+                    <button onClick={handleDownloadSample} className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">
+                        샘플 엑셀 다운로드
+                    </button>
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                    >
+                        엑셀 일괄 등록
+                    </button>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".xlsx,.xls"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                    />
+                    <button onClick={handleAddNew} className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">
+                        새 정산 추가
+                    </button>
+                </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                 <MultiSelectCombobox options={dateOptions} selected={filters.date} onChange={v => setFilters(f => ({...f, date: v}))} placeholder="날짜 (YYYY or YYYY-MM)..." />
@@ -572,6 +651,96 @@ const SettlementManagement: React.FC<{ initialSettlements: Settlement[]; employe
             </div>
             {isModalOpen && editingItem && (
                 <SettlementModal settlement={editingItem} employees={employees} onSave={handleSave} onClose={() => setIsModalOpen(false)} />
+            )}
+
+            {/* 일괄 등록 미리보기 모달 */}
+            {isImporting && importPreview.length > 0 && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+                        <h2 className="text-2xl font-bold mb-4">정산 일괄 등록 미리보기</h2>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                            {importPreview.length}건의 정산 내역이 등록됩니다. 아래 내용을 확인하고 진행해주세요.
+                        </p>
+
+                        <div className="flex-1 overflow-auto mb-4 border border-slate-300 dark:border-slate-600 rounded-md">
+                            <table className="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                                <thead className="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-700 dark:text-slate-300 sticky top-0">
+                                    <tr>
+                                        <th className="px-4 py-3">번호</th>
+                                        <th className="px-4 py-3">날짜</th>
+                                        <th className="px-4 py-3">이름</th>
+                                        <th className="px-4 py-3">구분</th>
+                                        <th className="px-4 py-3 text-right">지급액</th>
+                                        <th className="px-4 py-3 text-right">공제액</th>
+                                        <th className="px-4 py-3 text-right">실지급액</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {importPreview.map((settlement, idx) => {
+                                        // 각 항목의 지급액, 공제액, 실지급액 계산
+                                        let payment = 0, deduction = 0, netPay = 0;
+
+                                        if (settlement.category === '직원') {
+                                            const emp = settlement as EmployeeSettlement;
+                                            payment = emp.salary + emp.bonus + emp.overtimePay;
+                                            const totalSocialInsurance = emp.nationalPension + emp.healthInsurance + emp.employmentInsurance + emp.longTermCareInsurance;
+                                            const totalTaxes = emp.incomeTax + emp.localTax;
+                                            deduction = totalSocialInsurance + totalTaxes;
+                                            const postDeductionPay = payment - deduction;
+                                            const totalSupport = emp.pensionSupport + emp.employmentSupport;
+                                            netPay = postDeductionPay + totalSupport;
+                                        } else if (settlement.category === '거래처') {
+                                            const client = settlement as ClientSettlement;
+                                            payment = client.transactionAmount;
+                                            deduction = Math.floor((client.transactionAmount * 0.1) / 10) * 10;
+                                            netPay = payment + deduction;
+                                        } else {
+                                            const activity = settlement as ActivitySettlement;
+                                            payment = activity.fee;
+                                            deduction = activity.incomeTax + activity.localTax;
+                                            netPay = payment - deduction;
+                                        }
+
+                                        return (
+                                            <tr key={idx} className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600">
+                                                <td className="px-4 py-3">{idx + 1}</td>
+                                                <td className="px-4 py-3">{settlement.date}</td>
+                                                <td className="px-4 py-3 font-medium">{settlement.name}</td>
+                                                <td className="px-4 py-3">
+                                                    <span className={`px-2 py-1 rounded text-xs ${
+                                                        settlement.category === '직원' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' :
+                                                        settlement.category === '거래처' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
+                                                        'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
+                                                    }`}>
+                                                        {settlement.category}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 text-right">{formatCurrency(payment)}</td>
+                                                <td className="px-4 py-3 text-right text-red-500">{formatCurrency(deduction)}</td>
+                                                <td className="px-4 py-3 text-right font-bold text-primary-600">{formatCurrency(netPay)}</td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="flex justify-end space-x-2 pt-4 border-t border-slate-300 dark:border-slate-600">
+                            <button
+                                onClick={handleCancelImport}
+                                className="px-6 py-2 bg-slate-200 dark:bg-slate-600 rounded-md hover:bg-slate-300 dark:hover:bg-slate-500"
+                            >
+                                취소
+                            </button>
+                            <button
+                                onClick={handleConfirmImport}
+                                className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                            >
+                                {importPreview.length}건 등록하기
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

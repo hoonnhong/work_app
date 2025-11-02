@@ -166,3 +166,42 @@ export interface MemberOptionsSettings {
   createdAt?: string;   // 생성 날짜
   updatedAt?: string;   // 수정 날짜
 }
+
+//--- 조합 정보 관리 타입 정의 ---//
+// 조합의 중요한 정보를 관리하기 위한 타입입니다.
+// 비밀번호와 같은 민감한 정보는 암호화되어 저장됩니다.
+
+// 계좌 정보 타입
+export interface BankAccountInfo {
+  id?: string;                // Firestore 문서 ID
+  accountName: string;        // 계좌 이름 (예: "주거래 통장", "비상금 계좌")
+  bankName: string;           // 은행명
+  accountNumber: string;      // 계좌번호
+  accountPassword?: string;   // 계좌 비밀번호 (암호화되어 저장)
+  description?: string;       // 추가 설명
+  createdAt?: string;
+}
+
+// 사업자 정보 타입
+export interface BusinessInfo {
+  id?: string;                // Firestore 문서 ID
+  businessName: string;       // 사업자명
+  businessNumber: string;     // 사업자번호
+  corporateNumber?: string;   // 법인번호
+  description?: string;       // 추가 설명
+  createdAt?: string;
+}
+
+// 기타 비밀번호 정보 타입
+export interface PasswordInfo {
+  id?: string;                // Firestore 문서 ID
+  serviceName: string;        // 서비스 이름 (예: "관리자 페이지", "클라우드 계정")
+  username?: string;          // 아이디/사용자명
+  password?: string;          // 비밀번호 (암호화되어 저장)
+  url?: string;              // 관련 URL
+  description?: string;       // 추가 설명
+  createdAt?: string;
+}
+
+// 조합 정보 카테고리 타입 (Union Type)
+export type OrganizationInfoCategory = '계좌정보' | '사업자정보' | '비밀번호';
