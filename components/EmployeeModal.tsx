@@ -88,7 +88,7 @@ const EmployeeModal: React.FC<{
                 <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">구분 (중복 선택 가능)</label>
                     <div className="space-y-3 p-4 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700">
-                        {memberOptions ? (
+                        {memberOptions && memberOptions.roleCategories ? (
                             Object.entries(memberOptions.roleCategories).map(([key, category]) => (
                                 <div key={key}>
                                     <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">{category.label}</div>
