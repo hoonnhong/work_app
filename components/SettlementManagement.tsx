@@ -283,18 +283,16 @@ const SettlementModal: React.FC<{ settlement: Settlement; employees: Employee[];
                                          <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
                                              검색 결과가 없습니다
                                          </p>
-                                         {onAddEmployee && (
-                                             <button
-                                                 type="button"
-                                                 onClick={() => {
-                                                     setIsDropdownOpen(false);
-                                                     setIsAddingEmployee(true);
-                                                 }}
-                                                 className="px-4 py-2 bg-primary-600 text-white text-sm rounded-md hover:bg-primary-700"
-                                             >
-                                                 + 구성원 추가하기
-                                             </button>
-                                         )}
+                                         <button
+                                             type="button"
+                                             onClick={() => {
+                                                 setIsDropdownOpen(false);
+                                                 setIsAddingEmployee(true);
+                                             }}
+                                             className="px-4 py-2 bg-primary-600 text-white text-sm rounded-md hover:bg-primary-700"
+                                         >
+                                             + 구성원 추가하기
+                                         </button>
                                      </div>
                                  )}
                              </div>
