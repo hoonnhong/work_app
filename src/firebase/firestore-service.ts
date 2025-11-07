@@ -156,8 +156,12 @@ export class FirestoreService<T extends { id?: number | string }> {
 }
 
 // Specific services for each collection
+/**
+ * Member Service
+ * 구성원(직원, 강사, 거래처 등) 데이터를 관리하는 Firestore 서비스
+ * 'members' 컬렉션과 상호작용합니다.
+ */
 export const memberService = new FirestoreService<Member>('members');
-export const employeeService = memberService; // 하위 호환성을 위한 별칭
 export const settlementService = new FirestoreService<Settlement>('settlements');
 export const devNoteService = new FirestoreService<DevNote>('dev_notes');
 export const favoriteUrlService = new FirestoreService<FavoriteLink>('favorite_urls');

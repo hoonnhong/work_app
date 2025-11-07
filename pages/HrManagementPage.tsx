@@ -12,7 +12,7 @@ import SettlementManagement from '../components/SettlementManagement';
 import MemberOptionsManager from '../components/MemberOptionsManager';
 import Loader from '../components/Loader';
 import type { Employee, Settlement } from '../types';
-import { employeeService, settlementService } from '../src/firebase/firestore-service';
+import { memberService, settlementService } from '../src/firebase/firestore-service';
 
 const HrManagementPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'employees' | 'settlements' | 'settings'>('employees');
@@ -28,7 +28,7 @@ const HrManagementPage: React.FC = () => {
         setError(null);
 
         // 구성원 데이터 구독
-        const unsubscribeEmployees = employeeService.subscribe(
+        const unsubscribeEmployees = memberService.subscribe(
             (data) => {
                 setEmployees(data);
                 setIsLoading(false);
@@ -46,7 +46,7 @@ const HrManagementPage: React.FC = () => {
         const loadInitialData = async () => {
             try {
                 await Promise.all([
-                    employeeService.getAll(),
+                    memberService.getAll(),
                     settlementService.getAll()
                 ]);
             } catch (err) {

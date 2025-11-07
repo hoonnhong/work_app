@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { Employee, MemberOptionsSettings } from '../types';
 import { PencilSquareIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, SelectorIcon, ClipboardDocumentIcon, CheckIcon } from './Icons';
-import { employeeService, memberOptionsService } from '../src/firebase/firestore-service';
+import { memberService, memberOptionsService } from '../src/firebase/firestore-service';
 import { downloadSampleExcel, parseExcelFile, validateExcelFile } from '../utils/excelUtils';
 import EmployeeModal from './EmployeeModal';
 import DuplicateNameChecker from './DuplicateNameChecker';
@@ -231,7 +231,7 @@ const EmployeeManagement: React.FC<{
     const handleDelete = async (id: number) => {
         if(window.confirm('정말로 삭제하시겠습니까?')) {
             try {
-                await employeeService.delete(String(id));
+                await memberService.delete(String(id));
             } catch (error) {
                 console.error('Failed to delete employee:', error);
                 alert('구성원 삭제에 실패했습니다.');
@@ -243,11 +243,11 @@ const EmployeeManagement: React.FC<{
         try {
             if (item.id) {
                 // 업데이트
-                await employeeService.update(String(item.id), item);
+                await memberService.update(String(item.id), item);
             } else {
                 // 새로 추가
                 const newId = Date.now();
-                await employeeService.setWithId(String(newId), { ...item, id: newId });
+                await memberService.setWithId(String(newId), { ...item, id: newId });
             }
             setIsModalOpen(false);
             setEditingItem(null);
@@ -261,11 +261,11 @@ const EmployeeManagement: React.FC<{
         try {
             if (item.id) {
                 // 업데이트
-                await employeeService.update(String(item.id), item);
+                await memberService.update(String(item.id), item);
             } else {
                 // 새로 추가
                 const newId = Date.now();
-                await employeeService.setWithId(String(newId), { ...item, id: newId });
+                await memberService.setWithId(String(newId), { ...item, id: newId });
             }
             setIsModalOpen(false);
             setEditingItem(null);
@@ -345,7 +345,7 @@ const EmployeeManagement: React.FC<{
             // 모든 구성원을 Firestore에 저장
             for (const employee of importPreview) {
                 const newId = Date.now() + Math.random(); // 고유 ID 생성
-                await employeeService.setWithId(String(newId), { ...employee, id: newId });
+                await memberService.setWithId(String(newId), { ...employee, id: newId });
             }
 
             alert(`${importPreview.length}명의 구성원이 성공적으로 등록되었습니다.`);

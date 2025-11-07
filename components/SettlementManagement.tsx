@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { Settlement, EmployeeSettlement, ClientSettlement, ActivitySettlement, Employee, MemberOptionsSettings } from '../types';
 import { PencilSquareIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, SelectorIcon, ClipboardDocumentIcon, CheckIcon } from './Icons';
-import { settlementService, employeeService, memberOptionsService } from '../src/firebase/firestore-service';
+import { settlementService, memberService, memberOptionsService } from '../src/firebase/firestore-service';
 import { downloadSettlementSampleExcel, parseSettlementExcelFile, validateSettlementExcelFile } from '../utils/settlementExcelUtils';
 import EmployeeModal from './EmployeeModal';
 
@@ -206,10 +206,10 @@ const SettlementModal: React.FC<{ settlement: Settlement; employees: Employee[];
     const handleEmployeeSave = async (newEmployee: Employee) => {
         try {
             if (newEmployee.id) {
-                await employeeService.update(newEmployee.id, newEmployee);
+                await memberService.update(newEmployee.id, newEmployee);
             } else {
                 const newId = Date.now();
-                await employeeService.setWithId(String(newId), { ...newEmployee, id: newId });
+                await memberService.setWithId(String(newId), { ...newEmployee, id: newId });
             }
             setIsAddingEmployee(false);
         } catch (error) {
@@ -221,10 +221,10 @@ const SettlementModal: React.FC<{ settlement: Settlement; employees: Employee[];
     const handleEmployeeSaveAndContinue = async (newEmployee: Employee) => {
         try {
             if (newEmployee.id) {
-                await employeeService.update(newEmployee.id, newEmployee);
+                await memberService.update(newEmployee.id, newEmployee);
             } else {
                 const newId = Date.now();
-                await employeeService.setWithId(String(newId), { ...newEmployee, id: newId });
+                await memberService.setWithId(String(newId), { ...newEmployee, id: newId });
             }
             setIsAddingEmployee(false);
             // 새로 추가된 구성원의 이름을 자동으로 선택

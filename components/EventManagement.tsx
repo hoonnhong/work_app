@@ -8,7 +8,7 @@ import InstructorSelector from './InstructorSelector';
 import MultiInstructorPaymentForm from './MultiInstructorPaymentForm';
 
 const eventService = new FirestoreService<Event>('events');
-const employeeService = new FirestoreService<Member>('members');
+const memberService = new FirestoreService<Member>('members');
 
 interface SortConfig {
   key: keyof Event;

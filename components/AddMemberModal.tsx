@@ -8,7 +8,8 @@ interface AddMemberModalProps {
   onSuccess?: (newMember: Member) => void;
 }
 
-const memberService = new FirestoreService<Member>('members');
+// Firestore 서비스 초기화 - 구성원(Member) 컬렉션과 상호작용
+const firestoreMemberService = new FirestoreService<Member>('members');
 
 const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -41,7 +42,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose, onSucc
     }
 
     try {
-      await memberService.add(formData);
+      await firestoreMemberService.add(formData);
 
       // 성공 메시지 표시
       alert('구성원이 추가되었습니다.');
