@@ -5,6 +5,7 @@ interface PaymentConfirmationData {
   eventName: string;
   eventDate: string;
   eventTime: string;
+  location: string;
   topic: string;
   instructorName: string;
   instructorPhone: string;
@@ -66,7 +67,7 @@ const InstructorPaymentConfirmationLayout = React.forwardRef<
       </div>
 
       {/* ========== 3. 상단 정보 영역 ==========
-          강의명, 강의일시 및 장소, 강의주제 3줄 표시
+          강의명, 강의일시, 장소, 강의주제 4줄 표시
           수정가능:
           - marginBottom: 이 섹션 아래 여백 (3mm)
           - gap: 각 줄 사이 간격 (2mm)
@@ -78,8 +79,12 @@ const InstructorPaymentConfirmationLayout = React.forwardRef<
           <div style={{ paddingBottom: '0.5px', minHeight: '14px', fontSize: '13pt' }}>: {paymentData.eventName}</div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '2px', alignItems: 'flex-start' }}>
-          <span style={{ fontWeight: 'bold', fontSize: '13pt', whiteSpace: 'nowrap' }}>□ 강의일시 및 장소</span>
+          <span style={{ fontWeight: 'bold', fontSize: '13pt' }}>□ 강의일시</span>
           <div style={{ paddingBottom: '0.5px', minHeight: '14px', fontSize: '13pt' }}>: {paymentData.eventDate} {paymentData.eventTime}</div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '2px', alignItems: 'flex-start' }}>
+          <span style={{ fontWeight: 'bold', fontSize: '13pt' }}>□ 장소</span>
+          <div style={{ paddingBottom: '0.5px', minHeight: '14px', fontSize: '13pt' }}>: {paymentData.location}</div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '2px', alignItems: 'flex-start' }}>
           <span style={{ fontWeight: 'bold', fontSize: '13pt' }}>□ 강의주제</span>

@@ -13,6 +13,7 @@ interface PaymentConfirmationData {
   eventName: string;
   eventDate: string;
   eventTime: string;
+  location: string;
   topic: string;
   instructorName: string;
   instructorPhone: string;
@@ -109,6 +110,7 @@ const InstructorPaymentConfirmation: React.FC = () => {
             eventName: selectedEvent.eventName,
             eventDate: selectedEvent.eventDate,
             eventTime: selectedEvent.eventTime,
+            location: selectedEvent.location || '',
             topic: selectedEvent.topic,
             instructorName: instructor.name,
             instructorPhone: instructor.phone,
