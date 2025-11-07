@@ -115,7 +115,7 @@ const InstructorPaymentConfirmationLayout = React.forwardRef<
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '2px', alignItems: 'flex-start', marginBottom: '1.2mm' }}>
           <span style={{ fontSize: '13pt' }}>  - 지급금액</span>
-          <div style={{ paddingBottom: '0.5px', minHeight: '14px', fontSize: '13pt' }}>: {paymentData.instructorFee.toLocaleString()}원</div>
+          <div style={{ paddingBottom: '0.5px', minHeight: '14px', fontSize: '13pt' }}>: {paymentData.instructorFee.toLocaleString()}원(원천징수 후 실지급 {paymentData.netAmount.toLocaleString()}원)</div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '2px', alignItems: 'flex-start' }}>
           <span style={{ fontSize: '13pt' }}>  - 입금계좌</span>
