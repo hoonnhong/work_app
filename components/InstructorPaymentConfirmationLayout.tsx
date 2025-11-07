@@ -353,8 +353,9 @@ const InstructorPaymentConfirmationLayout = React.forwardRef<
       */}
       <div style={{ textAlign: 'right', marginTop: '2mm', fontSize: '9pt' }}>
         <div style={{ display: 'inline-block' }}>
-          <p style={{ margin: '0 0 1.5mm 0', fontWeight: 'bold', fontSize: '8pt' }}>정보주체 서명</p>
-          <div style={{ width: '45mm', height: '12mm', borderBottom: '1px solid #000' }}></div>
+          <p style={{ margin: '0 0 1.5mm 0', fontWeight: 'bold', fontSize: '13pt' }}>정보주체 서명</p>
+          <div style={{ width: '45mm', height: '8mm', borderBottom: '1px solid #000' }}></div>
+          <p style={{ margin: '1mm 0 0 0', fontSize: '10pt', textAlign: 'center' }}>황재홍  (서명)</p>
         </div>
       </div>
     </div>
