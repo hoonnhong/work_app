@@ -252,6 +252,7 @@ const EventManagement: React.FC = () => {
         topic: updatedFormData.topic,
         eventDate: updatedFormData.eventDate,
         eventTime: updatedFormData.eventTime,
+        location: updatedFormData.location,
         endDate: hasEndDateTime ? updatedFormData.endDate : undefined,
         endTime: hasEndDateTime ? updatedFormData.endTime : undefined,
         instructorId: Number(updatedFormData.instructorId),
