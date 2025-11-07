@@ -104,7 +104,7 @@ const InstructorPaymentConfirmationLayout = React.forwardRef<
       <div style={{ marginBottom: '2.5mm', fontSize: '13pt' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '5px', alignItems: 'flex-start', marginBottom: '1mm' }}>
           <span style={{ fontSize: '13pt' }}>  - 성함</span>
-          <div style={{ paddingBottom: '0px', minHeight: '20px', fontSize: '13pt', lineHeight: '1.15' }}>: {paymentData.instructorName}  (서명)</div>
+          <div style={{ paddingBottom: '0px', minHeight: '20px', fontSize: '13pt', lineHeight: '1.15' }}>: {paymentData.instructorName}  (서  명)</div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '5px', alignItems: 'flex-start', marginBottom: '1mm' }}>
           <span style={{ fontSize: '13pt' }}>  - 주민등록번호</span>
@@ -212,7 +212,7 @@ const InstructorPaymentConfirmationLayout = React.forwardRef<
       </div>
 
       {/* ========== 7. 주의사항 영역 ========== */}
-      <div style={{ backgroundColor: '#f9f9f9', border: '1px solid #000', padding: '1.5mm', marginBottom: '2mm', fontSize: '10pt' }}>
+      <div style={{ backgroundColor: '#f9f9f9', border: '1px solid #000', padding: '1.5mm', marginBottom: '6mm', fontSize: '10pt' }}>
         <p style={{ margin: '0', fontWeight: 'bold', lineHeight: '1.2' }}>
           ※ 동일인 월125,000원 초과지급 시 원천징수({paymentData.incomeType === '사업소득' ? '사업소득 3.3%' : '기타소득 8.8%'})
         </p>
