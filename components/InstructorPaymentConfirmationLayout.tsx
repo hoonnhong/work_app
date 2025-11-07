@@ -5,7 +5,7 @@ interface PaymentConfirmationData {
   eventName: string;
   eventDate: string;
   eventTime: string;
-  location: string;
+  location?: string;
   topic: string;
   instructorName: string;
   instructorPhone: string;
@@ -84,7 +84,7 @@ const InstructorPaymentConfirmationLayout = React.forwardRef<
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '2px', alignItems: 'flex-start' }}>
           <span style={{ fontWeight: 'bold', fontSize: '13pt' }}>□ 장소</span>
-          <div style={{ paddingBottom: '0.5px', minHeight: '14px', fontSize: '13pt' }}>: {paymentData.location}</div>
+          <div style={{ paddingBottom: '0.5px', minHeight: '14px', fontSize: '13pt' }}>: {paymentData.location || ''}</div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '2px', alignItems: 'flex-start' }}>
           <span style={{ fontWeight: 'bold', fontSize: '13pt' }}>□ 강의주제</span>

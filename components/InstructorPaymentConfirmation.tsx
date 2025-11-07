@@ -13,7 +13,7 @@ interface PaymentConfirmationData {
   eventName: string;
   eventDate: string;
   eventTime: string;
-  location: string;
+  location?: string;
   topic: string;
   instructorName: string;
   instructorPhone: string;
