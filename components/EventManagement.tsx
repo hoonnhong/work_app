@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Event, Member } from '../types';
 import { FirestoreService } from '../src/firebase/firestore-service';
 import { PencilSquareIcon, TrashIcon, PlusIcon, ChevronDownIcon } from './Icons';
+import { formatEventDate } from '../utils/dateUtils';
 
 const eventService = new FirestoreService<Event>('events');
 const employeeService = new FirestoreService<Member>('members');
@@ -26,6 +27,7 @@ const EventManagement: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [employees, setEmployees] = useState<Member[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'eventDate', direction: 'desc' });
   const [visibleColumns, setVisibleColumns] = useState<ColumnVisibility>({
@@ -65,6 +67,13 @@ const EventManagement: React.FC = () => {
     instructorFee: number | string;
     incomeType: string;
   }>>([]);
+  const [employeeFormData, setEmployeeFormData] = useState({
+    name: '',
+    phone: '',
+    residentRegistrationNumber: '',
+    bankName: '',
+    accountNumber: '',
+  });
 
   // 실시간 구독 설정
   useEffect(() => {
@@ -210,8 +219,8 @@ const EventManagement: React.FC = () => {
 
   // 저장
   const handleSave = async () => {
-    if (!formData.eventName || !formData.eventDate || !formData.instructorId) {
-      alert('행사명, 행사 날짜, 강사는 필수 항목입니다.');
+    if (!formData.eventName || !formData.eventDate) {
+      alert('행사명, 행사 날짜는 필수 항목입니다.');
       return;
     }
 
@@ -318,6 +327,57 @@ const EventManagement: React.FC = () => {
         console.error('삭제 오류:', error);
         alert('삭제 중 오류가 발생했습니다.');
       }
+    }
+  };
+
+  // 구성원 추가 저장
+  const handleAddEmployee = async () => {
+    if (!employeeFormData.name) {
+      alert('이름은 필수 항목입니다.');
+      return;
+    }
+
+    try {
+      const newEmployeeData = {
+        name: employeeFormData.name,
+        phone: employeeFormData.phone,
+        residentRegistrationNumber: employeeFormData.residentRegistrationNumber,
+        bankName: employeeFormData.bankName,
+        accountNumber: employeeFormData.accountNumber,
+      };
+
+      const newEmployeeRef = await (employeeService as any).add(newEmployeeData);
+      const newEmployeeName = employeeFormData.name;
+
+      // 모달 닫기 및 폼 초기화
+      setIsEmployeeModalOpen(false);
+      setEmployeeFormData({
+        name: '',
+        phone: '',
+        residentRegistrationNumber: '',
+        bankName: '',
+        accountNumber: '',
+      });
+
+      // Firestore의 실시간 구독이 업데이트되기를 기다린 후 선택
+      // 약 500ms 후에 새로운 직원을 찾아서 자동 선택
+      setTimeout(() => {
+        const newEmployee = employees.find((emp) => emp.name === newEmployeeName);
+        if (newEmployee) {
+          setInstructorSearchInput(newEmployeeName);
+          setFormData((prev) => ({
+            ...prev,
+            instructorId: String(newEmployee.id),
+          }));
+          setShowInstructorDropdown(false);
+          alert('구성원이 추가되었습니다. 강사명에 자동으로 등록되었습니다.');
+        } else {
+          alert('구성원이 추가되었습니다. 검색 상자에서 강사를 선택하세요.');
+        }
+      }, 500);
+    } catch (error) {
+      console.error('구성원 추가 오류:', error);
+      alert('구성원 추가 중 오류가 발생했습니다.');
     }
   };
 
@@ -464,7 +524,7 @@ const EventManagement: React.FC = () => {
               <tr key={event.id} className={`border-t border-slate-200 dark:border-slate-700 ${index % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-slate-50 dark:bg-slate-700'} hover:bg-slate-100 dark:hover:bg-slate-600`}>
                 {visibleColumns.eventName && <td className="px-4 py-3 text-slate-900 dark:text-slate-100">{event.eventName}</td>}
                 {visibleColumns.topic && <td className="px-4 py-3 text-slate-900 dark:text-slate-100">{event.topic}</td>}
-                {visibleColumns.eventDate && <td className="px-4 py-3 text-slate-900 dark:text-slate-100">{event.eventDate}</td>}
+                {visibleColumns.eventDate && <td className="px-4 py-3 text-slate-900 dark:text-slate-100">{formatEventDate(event.eventDate)}</td>}
                 {visibleColumns.eventTime && <td className="px-4 py-3 text-slate-900 dark:text-slate-100">{event.eventTime}</td>}
                 {visibleColumns.instructorName && <td className="px-4 py-3 text-slate-900 dark:text-slate-100">{getInstructorName(event.instructorId)}</td>}
                 {visibleColumns.instructorFee && <td className="px-4 py-3 text-right text-slate-900 dark:text-slate-100">{event.instructorFee ? event.instructorFee.toLocaleString() : '0'}</td>}
@@ -692,7 +752,7 @@ const EventManagement: React.FC = () => {
               {/* 강사 선택 - 검색 가능한 입력 */}
               <div className="relative">
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  강사 *
+                  강사
                 </label>
                 <input
                   type="text"
@@ -718,8 +778,21 @@ const EventManagement: React.FC = () => {
                         </button>
                       ))
                     ) : (
-                      <div className="px-4 py-2 text-slate-500 dark:text-slate-400 text-sm">
-                        검색 결과가 없습니다
+                      <div className="space-y-2 p-2">
+                        <div className="px-4 py-2 text-slate-500 dark:text-slate-400 text-sm text-center">
+                          검색 결과가 없습니다
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowInstructorDropdown(false);
+                            setIsEmployeeModalOpen(true);
+                          }}
+                          className="w-full px-4 py-2 text-sm bg-primary-600 text-white rounded hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 flex items-center justify-center gap-1"
+                        >
+                          <PlusIcon className="w-4 h-4" />
+                          구성원 추가
+                        </button>
                       </div>
                     )}
                   </div>
@@ -894,6 +967,116 @@ const EventManagement: React.FC = () => {
                 className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600"
               >
                 저장
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 구성원 추가 모달 */}
+      {isEmployeeModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-6 w-full max-w-lg">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
+              새 구성원 추가
+            </h2>
+
+            <div className="space-y-4">
+              {/* 이름 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  이름 *
+                </label>
+                <input
+                  type="text"
+                  value={employeeFormData.name}
+                  onChange={(e) => setEmployeeFormData({ ...employeeFormData, name: e.target.value })}
+                  placeholder="이름을 입력하세요"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                />
+              </div>
+
+              {/* 전화번호 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  전화번호
+                </label>
+                <input
+                  type="tel"
+                  value={employeeFormData.phone}
+                  onChange={(e) => setEmployeeFormData({ ...employeeFormData, phone: e.target.value })}
+                  placeholder="전화번호를 입력하세요"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                />
+              </div>
+
+              {/* 주민등록번호 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  주민등록번호
+                </label>
+                <input
+                  type="text"
+                  value={employeeFormData.residentRegistrationNumber}
+                  onChange={(e) => setEmployeeFormData({ ...employeeFormData, residentRegistrationNumber: e.target.value })}
+                  placeholder="주민등록번호를 입력하세요"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                />
+              </div>
+
+              {/* 은행명 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  은행명
+                </label>
+                <input
+                  type="text"
+                  value={employeeFormData.bankName}
+                  onChange={(e) => setEmployeeFormData({ ...employeeFormData, bankName: e.target.value })}
+                  placeholder="은행명을 입력하세요"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                />
+              </div>
+
+              {/* 계좌번호 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  계좌번호
+                </label>
+                <input
+                  type="text"
+                  value={employeeFormData.accountNumber}
+                  onChange={(e) => setEmployeeFormData({ ...employeeFormData, accountNumber: e.target.value })}
+                  placeholder="계좌번호를 입력하세요"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                />
+              </div>
+            </div>
+
+            {/* 버튼 */}
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEmployeeModalOpen(false);
+                  setEmployeeFormData({
+                    name: '',
+                    phone: '',
+                    residentRegistrationNumber: '',
+                    bankName: '',
+                    accountNumber: '',
+                  });
+                }}
+                className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleAddEmployee}
+                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600"
+              >
+                추가
               </button>
             </div>
           </div>

@@ -15,7 +15,7 @@ import {
   DocumentData
 } from 'firebase/firestore';
 import { db } from './config';
-import type { Member, Employee, Settlement, DevNote, FavoriteLink, MemberOptionsSettings, BankAccountInfo, BusinessInfo, PasswordInfo } from '../../types';
+import type { Member, Employee, Settlement, DevNote, FavoriteLink, MemberOptionsSettings, BankAccountInfo, BusinessInfo, PasswordInfo, Event } from '../../types';
 
 // Utility function to remove undefined values from an object
 function removeUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
@@ -40,10 +40,15 @@ export class FirestoreService<T extends { id?: number | string }> {
   async getAll(): Promise<T[]> {
     try {
       const querySnapshot = await getDocs(collection(db, this.collectionName));
-      return querySnapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id
-      } as T));
+      return querySnapshot.docs.map(doc => {
+        const docData = doc.data();
+        // 저장된 id 필드가 있으면 사용, 없으면 문서 ID 사용
+        const id = docData.id !== undefined ? docData.id : doc.id;
+        return {
+          ...docData,
+          id: id
+        } as T;
+      });
     } catch (error) {
       console.error(`Error getting documents from ${this.collectionName}:`, error);
       throw error;
@@ -57,7 +62,10 @@ export class FirestoreService<T extends { id?: number | string }> {
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
-        return { ...docSnap.data(), id: docSnap.id } as T;
+        const docData = docSnap.data();
+        // 저장된 id 필드가 있으면 사용, 없으면 문서 ID 사용
+        const finalId = docData.id !== undefined ? docData.id : docSnap.id;
+        return { ...docData, id: finalId } as T;
       }
       return null;
     } catch (error) {
@@ -127,10 +135,15 @@ export class FirestoreService<T extends { id?: number | string }> {
 
     const unsubscribe = onSnapshot(q,
       (querySnapshot) => {
-        const data = querySnapshot.docs.map(doc => ({
-          ...doc.data(),
-          id: doc.id
-        } as T));
+        const data = querySnapshot.docs.map(doc => {
+          const docData = doc.data();
+          // 저장된 id 필드가 있으면 사용, 없으면 문서 ID 사용
+          const id = docData.id !== undefined ? docData.id : doc.id;
+          return {
+            ...docData,
+            id: id
+          } as T;
+        });
         callback(data);
       },
       (error) => {
@@ -148,6 +161,9 @@ export const employeeService = memberService; // 하위 호환성을 위한 별�
 export const settlementService = new FirestoreService<Settlement>('settlements');
 export const devNoteService = new FirestoreService<DevNote>('dev_notes');
 export const favoriteUrlService = new FirestoreService<FavoriteLink>('favorite_urls');
+
+// Event service (for event management)
+export const eventService = new FirestoreService<Event>('events');
 
 // Prompts service (for AI prompt templates)
 export interface Prompt {

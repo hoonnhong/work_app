@@ -4,6 +4,7 @@ import { PencilSquareIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, SelectorIc
 import { employeeService, memberOptionsService } from '../src/firebase/firestore-service';
 import { downloadSampleExcel, parseExcelFile, validateExcelFile } from '../utils/excelUtils';
 import EmployeeModal from './EmployeeModal';
+import DuplicateNameChecker from './DuplicateNameChecker';
 
 // --- Helper & Sub-components ---
 
@@ -138,6 +139,7 @@ const EmployeeManagement: React.FC<{
     const [editingItem, setEditingItem] = useState<Employee | null>(null);
     const [isImporting, setIsImporting] = useState(false);
     const [importPreview, setImportPreview] = useState<Employee[]>([]);
+    const [isDuplicateCheckerOpen, setIsDuplicateCheckerOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Firestore 구독: initialEmployees가 변경될 때마다 업데이트
@@ -215,6 +217,10 @@ const EmployeeManagement: React.FC<{
     const handleAddNew = () => {
         setEditingItem({ id: 0, name: '', residentRegistrationNumber: '', role: [], department: '', email: '', phone: '', address: '', bankName: '', accountNumber: '', notes: '' });
         setIsModalOpen(true);
+    };
+
+    const handleOpenDuplicateChecker = () => {
+        setIsDuplicateCheckerOpen(true);
     };
 
     const handleEdit = (item: Employee) => {
@@ -399,6 +405,9 @@ const EmployeeManagement: React.FC<{
             <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
                 <h3 className="text-xl font-semibold">구성원 목록</h3>
                 <div className="flex gap-2 flex-wrap">
+                    <button onClick={handleOpenDuplicateChecker} className="px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600">
+                        동명이인 검색
+                    </button>
                     <button onClick={handleDownloadSample} className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">
                         샘플 엑셀 다운로드
                     </button>
@@ -516,6 +525,15 @@ const EmployeeManagement: React.FC<{
                     onClose={() => setIsModalOpen(false)}
                     memberOptions={memberOptions}
                     onSaveAndContinue={onNavigateToSettlement ? handleSaveAndContinue : undefined}
+                />
+            )}
+
+            {/* 동명이인 검색 모달 */}
+            {isDuplicateCheckerOpen && (
+                <DuplicateNameChecker
+                    employees={employees}
+                    onDelete={handleDelete}
+                    onClose={() => setIsDuplicateCheckerOpen(false)}
                 />
             )}
 

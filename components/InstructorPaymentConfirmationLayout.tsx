@@ -1,10 +1,12 @@
 import React from 'react';
+import { formatEventDateTime } from '../utils/dateUtils';
 
 interface PaymentConfirmationData {
   eventId: string;
   eventName: string;
   eventDate: string;
   eventTime: string;
+  instructionDuration: string; // 강의시간 (예: 2시간)
   location?: string;
   topic: string;
   instructorName: string;
@@ -54,7 +56,7 @@ const InstructorPaymentConfirmationLayout = React.forwardRef<
           경남산청의료복지사회적협동조합 이름 표시
           수정가능: fontSize(12pt), marginBottom(2mm)
       */}
-      <div style={{ textAlign: 'center', marginBottom: '2mm', fontSize: '12pt', fontWeight: 'bold' }}>
+      <div style={{ textAlign: 'center', marginBottom: '2mm', fontSize: '20pt', fontWeight: 'bold' }}>
         경남산청의료복지사회적협동조합
       </div>
 
@@ -62,8 +64,8 @@ const InstructorPaymentConfirmationLayout = React.forwardRef<
           "강사비 지급 확인서" 제목 + 아래 구분선
           수정가능: fontSize(18pt), marginBottom(5mm), paddingBottom(3mm), borderBottom 색상
       */}
-      <div style={{ textAlign: 'center', marginBottom: '5mm', paddingBottom: '3mm', borderBottom: '1px solid #000' }}>
-        <h1 style={{ fontSize: '18pt', fontWeight: 'bold', margin: '0' }}>강사비 지급 확인서</h1>
+      <div style={{ textAlign: 'center', marginBottom: '5mm', paddingBottom: '7mm', borderBottom: '1px solid #000' }}>
+        <h1 style={{ fontSize: '30pt', fontWeight: 'bold', margin: '0' }}>강사비 지급 확인서</h1>
       </div>
 
       {/* ========== 3. 상단 정보 영역 ==========
@@ -74,21 +76,21 @@ const InstructorPaymentConfirmationLayout = React.forwardRef<
           - 첫번째 컬럼(label) 너비: 50mm
       */}
       <div style={{ marginBottom: '3mm', display: 'grid', gridTemplateColumns: '1fr', gap: '2mm' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '2px', alignItems: 'flex-start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '5px', alignItems: 'flex-start' }}>
           <span style={{ fontWeight: 'bold', fontSize: '13pt' }}>□ 강의명</span>
-          <div style={{ paddingBottom: '0.5px', minHeight: '14px', fontSize: '13pt' }}>: {paymentData.eventName}</div>
+          <div style={{ paddingBottom: '0.5px', minHeight: '20px', fontSize: '13pt' }}>: {paymentData.eventName}</div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '2px', alignItems: 'flex-start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '5px', alignItems: 'flex-start' }}>
           <span style={{ fontWeight: 'bold', fontSize: '13pt' }}>□ 강의일시</span>
-          <div style={{ paddingBottom: '0.5px', minHeight: '14px', fontSize: '13pt' }}>: {paymentData.eventDate} {paymentData.eventTime}</div>
+          <div style={{ paddingBottom: '0.5px', minHeight: '20px', fontSize: '13pt' }}>: {formatEventDateTime(paymentData.eventDate, paymentData.eventTime)}</div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '2px', alignItems: 'flex-start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '5px', alignItems: 'flex-start' }}>
           <span style={{ fontWeight: 'bold', fontSize: '13pt' }}>□ 장소</span>
-          <div style={{ paddingBottom: '0.5px', minHeight: '14px', fontSize: '13pt' }}>: {paymentData.location || ''}</div>
+          <div style={{ paddingBottom: '0.5px', minHeight: '20px', fontSize: '13pt' }}>: {paymentData.location || ''}</div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '2px', alignItems: 'flex-start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '5px', alignItems: 'flex-start' }}>
           <span style={{ fontWeight: 'bold', fontSize: '13pt' }}>□ 강의주제</span>
-          <div style={{ paddingBottom: '0.5px', minHeight: '14px', fontSize: '13pt' }}>: {paymentData.topic}</div>
+          <div style={{ paddingBottom: '0.5px', minHeight: '20px', fontSize: '13pt' }}>: {paymentData.topic}</div>
         </div>
       </div>
 
@@ -100,25 +102,25 @@ const InstructorPaymentConfirmationLayout = React.forwardRef<
           - 각 줄 marginBottom: 1.2mm (행간)
       */}
       <div style={{ marginBottom: '3mm', fontSize: '13pt' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '2px', alignItems: 'flex-start', marginBottom: '1.2mm' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '5px', alignItems: 'flex-start', marginBottom: '1.2mm' }}>
           <span style={{ fontSize: '13pt' }}>  - 성함</span>
-          <div style={{ paddingBottom: '1px', minHeight: '14px', fontSize: '13pt' }}>: {paymentData.instructorName}  (서명)</div>
+          <div style={{ paddingBottom: '1px', minHeight: '20px', fontSize: '13pt' }}>: {paymentData.instructorName}  (서명)</div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '2px', alignItems: 'flex-start', marginBottom: '1.2mm' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '5px', alignItems: 'flex-start', marginBottom: '1.2mm' }}>
           <span style={{ fontSize: '13pt' }}>  - 주민등록번호</span>
-          <div style={{ paddingBottom: '0.5px', minHeight: '14px', fontSize: '13pt' }}>: {paymentData.instructorIdNumber}</div>
+          <div style={{ paddingBottom: '0.5px', minHeight: '20px', fontSize: '13pt' }}>: {paymentData.instructorIdNumber}</div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '2px', alignItems: 'flex-start', marginBottom: '1.2mm' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '5px', alignItems: 'flex-start', marginBottom: '1.2mm' }}>
           <span style={{ fontSize: '13pt' }}>  - 연락처</span>
-          <div style={{ paddingBottom: '0.5px', minHeight: '14px', fontSize: '13pt' }}>: {paymentData.instructorPhone}</div>
+          <div style={{ paddingBottom: '0.5px', minHeight: '20px', fontSize: '13pt' }}>: {paymentData.instructorPhone}</div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '2px', alignItems: 'flex-start', marginBottom: '1.2mm' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '5px', alignItems: 'flex-start', marginBottom: '1.2mm' }}>
           <span style={{ fontSize: '13pt' }}>  - 지급금액</span>
-          <div style={{ paddingBottom: '0.5px', minHeight: '14px', fontSize: '13pt' }}>: {paymentData.instructorFee.toLocaleString()}원(원천징수 후 실지급 {paymentData.netAmount.toLocaleString()}원)</div>
+          <div style={{ paddingBottom: '0.5px', minHeight: '20px', fontSize: '13pt' }}>: {paymentData.instructorFee.toLocaleString()}원(원천징수 후 실지급 {paymentData.netAmount.toLocaleString()}원)</div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '2px', alignItems: 'flex-start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '5px', alignItems: 'flex-start' }}>
           <span style={{ fontSize: '13pt' }}>  - 입금계좌</span>
-          <div style={{ paddingBottom: '0.5px', minHeight: '14px', fontSize: '13pt' }}>: {paymentData.instructorBankName} {paymentData.instructorAccountNumber}</div>
+          <div style={{ paddingBottom: '0.5px', minHeight: '20px', fontSize: '13pt' }}>: {paymentData.instructorBankName} {paymentData.instructorAccountNumber}</div>
         </div>
       </div>
 
@@ -126,147 +128,220 @@ const InstructorPaymentConfirmationLayout = React.forwardRef<
           상단 정보와 테이블 사이의 구분선
           수정가능: borderTop(선 스타일), margin(위아래 여백 2mm)
       */}
-      <div style={{ borderTop: '1px solid #000', margin: '2mm 0' }}></div>
+      <div style={{ borderTop: '1px solid #000', margin: '5mm 0' }}></div>
 
-      {/* ========== 6. 강사료 계산 테이블 ==========
-          강사명, 강의일자, 강사료, 원천징수 공제액 등을 표시하는 메인 테이블
-          수정가능:
-          - marginBottom: 테이블 아래 여백 (2mm)
-          - fontSize: 테이블 글자 크기 (10pt)
-          - 각 컬럼 너비는 colgroup의 width 값으로 조정 (12%, 16% 등)
-      */}
+      {/* ========== 6. 강사료 계산 테이블 (Padding 정렬 적용) ========== */}
       <div style={{ marginBottom: '2mm', fontSize: '10pt', overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', height: 'auto' }}>
-          {/* 컬럼 너비 설정: 8개 컬럼
-              1. 강사명 (12%)
-              2. 강의일자 (16%)
-              3. 강사료 (12%)
-              4-6. 원천징수 공제액 (3개, 각 12%)
-              7. 실지급액 (12%)
-              8. 비고 (12%)
-          */}
+        {/* 'height: auto' 삭제 */}
+        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+          {/* 컬럼 너비 설정 (7개 컬럼) */}
           <colgroup>
-            <col style={{ width: '12%' }} />
-            <col style={{ width: '16%' }} />
-            <col style={{ width: '12%' }} />
-            <col style={{ width: '12%' }} />
-            <col style={{ width: '12%' }} />
-            <col style={{ width: '12%' }} />
-            <col style={{ width: '12%' }} />
-            <col style={{ width: '12%' }} />
+            <col style={{ width: '14.28%' }} />
+            <col style={{ width: '14.28%' }} />
+            <col style={{ width: '14.28%' }} />
+            <col style={{ width: '14.28%' }} />
+            <col style={{ width: '14.28%' }} />
+            <col style={{ width: '14.28%' }} />
+            <col style={{ width: '14.28%' }} />
           </colgroup>
           <thead>
-            {/* 테이블 헤더 - 1번째 행: 메인 헤더 (높이 12mm) */}
-            <tr style={{ height: '12mm' }}>
-              {/* 수정 예시: fontSize를 11pt로 늘리거나, padding을 3mm로 변경 가능 */}
-              <th style={{ border: '1px solid #000', padding: '2mm', fontWeight: 'bold', backgroundColor: '#f0f0f0', fontSize: '10pt', wordWrap: 'break-word', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>강사명</th>
-              <th style={{ border: '1px solid #000', padding: '2mm', fontWeight: 'bold', backgroundColor: '#f0f0f0', fontSize: '10pt', wordWrap: 'break-word', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>강의일자<br/>(강의시간)</th>
-              <th style={{ border: '1px solid #000', padding: '2mm', fontWeight: 'bold', backgroundColor: '#f0f0f0', fontSize: '10pt', wordWrap: 'break-word', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>강사료<br/>(A)</th>
-              <th colSpan={3} style={{ border: '1px solid #000', padding: '2mm', fontWeight: 'bold', backgroundColor: '#f0f0f0', fontSize: '10pt', wordWrap: 'break-word', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>원천징수 공제액</th>
-              <th style={{ border: '1px solid #000', padding: '2mm', fontWeight: 'bold', backgroundColor: '#f0f0f0', fontSize: '10pt', wordWrap: 'break-word', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>실지급액<br/>(A-B)</th>
-              <th style={{ border: '1px solid #000', padding: '2mm', fontWeight: 'bold', backgroundColor: '#f0f0f0', fontSize: '10pt', wordWrap: 'break-word', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>비고</th>
+            {/* 1. <tr>에서 height 속성 제거 */}
+            <tr style={{ }}>
+              {/* 2. display:flex 제거, verticalAlign:middle 복원 */}
+              {/* 3. padding을 '상하 3mm / 좌우 1.5mm'로 조정 */}
+              <th rowSpan={2} style={{ border: '1px solid #000', padding: '3mm 1.5mm', fontWeight: 'bold', backgroundColor: '#e7e7e7', fontSize: '10pt', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>
+                강사명
+              </th>
+              <th rowSpan={2} style={{ border: '1px solid #000', padding: '3mm 1.5mm', fontWeight: 'bold', backgroundColor: '#e7e7e7', fontSize: '10pt', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>
+                강의일자<br/>(강의시간)
+              </th>
+              <th rowSpan={2} style={{ border: '1px solid #000', padding: '3mm 1.5mm', fontWeight: 'bold', backgroundColor: '#e7e7e7', fontSize: '10pt', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>
+                강사료<br/>(A)
+              </th>
+              <th colSpan={3} style={{ border: '1px solid #000', padding: '3mm 1.5mm', fontWeight: 'bold', backgroundColor: '#e7e7e7', fontSize: '10pt', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>
+                원천징수 공제액
+              </th>
+              <th rowSpan={2} style={{ border: '1px solid #000', padding: '3mm 1.5mm', fontWeight: 'bold', backgroundColor: '#e7e7e7', fontSize: '10pt', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>
+                실지급액<br/>(A-B)
+              </th>
             </tr>
-            <tr style={{ height: '10mm' }}>
-              <th colSpan={3} style={{ border: '1px solid #000', padding: '2mm', verticalAlign: 'middle' }}></th>
-              <th style={{ border: '1px solid #000', padding: '2mm', fontWeight: 'bold', fontSize: '10pt', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>계(B)</th>
-              <th style={{ border: '1px solid #000', padding: '2mm', fontWeight: 'bold', fontSize: '10pt', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>소득세</th>
-              <th style={{ border: '1px solid #000', padding: '2mm', fontWeight: 'bold', fontSize: '10pt', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>지방<br/>소득세</th>
-              <th colSpan={2} style={{ border: '1px solid #000', padding: '2mm', verticalAlign: 'middle' }}></th>
+            {/* 1. <tr>에서 height 속성 제거 */}
+            <tr style={{ }}>
+              {/* 3. padding을 '상하 2mm / 좌우 1mm'로 조정 */}
+              <th style={{ border: '1px solid #000', padding: '2mm 1mm', fontWeight: 'bold', backgroundColor: '#e7e7e7', fontSize: '9pt', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>
+                계(B)
+              </th>
+              <th style={{ border: '1px solid #000', padding: '2mm 1mm', fontWeight: 'bold', backgroundColor: '#e7e7e7', fontSize: '9pt', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>
+                소득세
+              </th>
+              <th style={{ border: '1px solid #000', padding: '2mm 1mm', fontWeight: 'bold', backgroundColor: '#e7e7e7', fontSize: '9pt', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>
+                지방세
+              </th>
             </tr>
           </thead>
           <tbody>
-            {/* 테이블 데이터 행 - 실제 강사료 정보 표시 (높이 13mm) */}
-            <tr style={{ height: '13mm' }}>
-              {/* 강사명 - 중앙 정렬 */}
-              <td style={{ border: '1px solid #000', padding: '2mm', fontSize: '10pt', wordWrap: 'break-word', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>{paymentData.instructorName}</td>
-              <td style={{ border: '1px solid #000', padding: '2mm', fontSize: '10pt', wordWrap: 'break-word', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>
-                {paymentData.eventDate}<br/>({paymentData.eventTime})
+            {/* 1. <tr>에서 height 속성 제거 */}
+            <tr style={{ }}>
+              {/* 2. <span> 래퍼 제거, display:flex 제거, verticalAlign:middle 복원 */}
+              {/* 3. padding을 '상하 4mm / 좌우 1.5mm'로 조정 */}
+              <td style={{ border: '1px solid #000', padding: '4mm 1.5mm', fontSize: '10pt', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>
+                {paymentData.instructorName}
               </td>
-              <td style={{ border: '1px solid #000', padding: '2mm', fontWeight: 'bold', fontSize: '10pt', verticalAlign: 'middle', textAlign: 'right', lineHeight: '1.2' }}>
+              <td style={{ border: '1px solid #000', padding: '4mm 1.5mm', fontSize: '10pt', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}>
+                {paymentData.eventDate}<br/>({paymentData.instructionDuration}시간)
+              </td>
+              {/* 3. padding '상하 4mm / 좌우 1.5mm', textAlign: 'right' 복원 */}
+              <td style={{ border: '1px solid #000', padding: '4mm 1.5mm', fontWeight: 'bold', fontSize: '10pt', verticalAlign: 'middle', textAlign: 'right', lineHeight: '1.2' }}>
                 {paymentData.instructorFee.toLocaleString()}
               </td>
-              <td style={{ border: '1px solid #000', padding: '2mm', fontWeight: 'bold', fontSize: '10pt', verticalAlign: 'middle', textAlign: 'right', lineHeight: '1.2' }}>
+              <td style={{ border: '1px solid #000', padding: '4mm 1.5mm', fontWeight: 'bold', fontSize: '10pt', verticalAlign: 'middle', textAlign: 'right', lineHeight: '1.2' }}>
                 {(paymentData.incomeDeductionAmount + paymentData.localDeductionAmount).toLocaleString()}
               </td>
-              <td style={{ border: '1px solid #000', padding: '2mm', fontSize: '10pt', verticalAlign: 'middle', textAlign: 'right', lineHeight: '1.2' }}>
+              <td style={{ border: '1px solid #000', padding: '4mm 1.5mm', fontSize: '10pt', verticalAlign: 'middle', textAlign: 'right', lineHeight: '1.2' }}>
                 {paymentData.incomeDeductionAmount.toLocaleString()}
               </td>
-              <td style={{ border: '1px solid #000', padding: '2mm', fontSize: '10pt', verticalAlign: 'middle', textAlign: 'right', lineHeight: '1.2' }}>
+              <td style={{ border: '1px solid #000', padding: '4mm 1.5mm', fontSize: '10pt', verticalAlign: 'middle', textAlign: 'right', lineHeight: '1.2' }}>
                 {paymentData.localDeductionAmount.toLocaleString()}
               </td>
-              <td style={{ border: '1px solid #000', padding: '2mm', fontWeight: 'bold', fontSize: '10pt', verticalAlign: 'middle', textAlign: 'right', lineHeight: '1.2' }}>
+              <td style={{ border: '1px solid #000', padding: '4mm 1.5mm', fontWeight: 'bold', fontSize: '10pt', verticalAlign: 'middle', textAlign: 'right', lineHeight: '1.2' }}>
                 {paymentData.netAmount.toLocaleString()}
               </td>
-              <td style={{ border: '1px solid #000', padding: '2mm', verticalAlign: 'middle', textAlign: 'center', lineHeight: '1.2' }}></td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      {/* ========== 7. 주의사항 영역 ==========
-          월 125,000원 초과지급 시 원천징수 안내
-          수정가능:
-          - backgroundColor: 배경색 (#f9f9f9 - 연회색)
-          - padding: 내부 여백 (1.5mm)
-          - marginBottom: 아래 여백 (1.5mm)
-          - fontSize: 글자 크기 (11pt)
-      */}
-      <div style={{ backgroundColor: '#f9f9f9', border: '1px solid #000', padding: '1.5mm', marginBottom: '1.5mm', fontSize: '11pt' }}>
+      {/* ========== 7. 주의사항 영역 ========== */}
+      <div style={{ backgroundColor: '#f9f9f9', border: '1px solid #000', padding: '1.5mm', marginBottom: '3mm', fontSize: '11pt' }}>
         <p style={{ margin: '0', fontWeight: 'bold' }}>
           ※ 동일인 월125,000원 초과지급 시 원천징수({paymentData.incomeType === '사업소득' ? '사업소득 3.3%' : '기타소득 8.8%'})
         </p>
       </div>
 
       {/* ========== 8. 동의 영역 ==========
-          개인정보처리방침 안내 및 동의 체크박스
-          수정가능:
-          - padding: 전체 여백 (2mm)
-          - marginBottom: 아래 여백 (1.5mm)
-          - 내부 섹션의 gap: 좌우 2개 박스 간격 (1mm)
-          - checkbox 섹션 gridTemplateColumns: 4개 동의/미동의 열
+        가독성을 높이기 위해 여백(padding, gap)과
+        줄 간격(lineHeight)을 전체적으로 늘렸습니다.
+        또한, 이미지 레이아웃에 맞춰 '동의/미동의' 버튼을
+        각 항목 박스 안으로 이동시켰습니다.
       */}
-      <div style={{ border: '1px solid #000', padding: '2mm', marginBottom: '1.5mm', fontSize: '10pt' }}>
+      <div style={{
+        border: '1px solid #000',
+        padding: '3mm', // 1. 전체 안쪽 여백을 2mm -> 3mm로 늘림
+        marginBottom: '3mm', // 2. 하단 바깥 여백을 1.5mm -> 3mm로 늘림
+        fontSize: '10pt',
+        fontFamily: 'sans-serif' // 3. 가독성을 위해 기본 폰트 지정
+      }}>
+
         {/* 동의 제목 */}
-        <h3 style={{ fontWeight: 'bold', marginBottom: '1mm', lineHeight: '1.2', fontSize: '10pt', margin: '0' }}>경남산청의료복지사회적협동조합<br/>개인정보처리방침 안내및 개인정보수집 동의서</h3>
+        <h3 style={{
+          fontWeight: 'bold',
+          lineHeight: '1.2', 
+          fontSize: '11pt', // 5. 제목 폰트를 10pt -> 11pt로 키움
+          margin: '0',
+          textAlign: 'center', // 6. 이미지와 같이 가운데 정렬
+          marginBottom: '3mm' // 7. 제목과 본문 사이 간격을 넉넉하게 줌
+        }}>
+          경남산청의료복지사회적협동조합<br />개인정보처리방침 안내 및 개인정보수집 동의서
+        </h3>
 
         {/* 동의 안내 텍스트 - 2줄 */}
-        <div style={{ fontSize: '10pt', marginBottom: '1mm', lineHeight: '1.1' }}>
-          <p style={{ margin: '0.3mm 0' }}>○ 귀하는 개인정보제공을 거부할 수 있습니다. 단, 이 경우 경남산청의료복지사회적협동조합은 수당을 지급하지 않게 됩니다.</p>
-          <p style={{ margin: '0.3mm 0' }}>○ 제공된 개인정보는 소득세법에 따라 제공일자가 포함된 회계연도를 기준으로 5년간 보관되며, 관련법령에 따라 신고의 의무가 있거나, 적법한 요청이 있는 경우를 제외하고는 제3자에게 제공하지 않습니다.</p>
+        <div style={{
+          fontSize: '10pt',
+          marginBottom: '5mm', // 8. 본문과 박스 사이 간격을 8mm -> 5mm로 조정
+          lineHeight: '1.3' // 9. 줄 간격을 1.1 -> 1.3으로 늘려 가독성 확보
+        }}>
+          <p style={{ margin: '0 0 1mm 0' }}> {/* 10. 문단 사이 간격을 0.3mm -> 1mm로 늘림 */}
+            ○ 귀하는 개인정보제공을 거부할 수 있습니다. 단, 이 경우 경남산청의료복지사회적협동조합은 수당을 지급하지 않게 됩니다.
+          </p>
+          <p style={{ margin: '0' }}>
+            ○ 제공된 개인정보는 소득세법에 따라 제공일자가 포함된 회계연도를 기준으로 5년간 보관되며, 관련법령에 따라 신고의 의무가 있거나, 적법한 요청이 있는 경우를 제외하고는 제3자에게 제공하지 않습니다.
+          </p>
         </div>
 
-        {/* 개인정보 처리 항목 - 2개 박스 좌우 배치 */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1mm', marginBottom: '1mm' }}>
-          <div style={{ border: '1px solid #000', padding: '1mm' }}>
-            <p style={{ fontWeight: 'bold', fontSize: '10pt', margin: '0 0 0.3mm 0' }}>[개인정보 처리]</p>
-            <p style={{ fontSize: '10pt', margin: '0', lineHeight: '1.1' }}>본인은 경남산청의료복지사회적협동조합의 개인 정보처리 방침에 동의하며, 수당 지급을 위하여 성명, 소속 및 직위, 주소, 은행 및 계좌정보 등의 개인정보를 경남산청의료복지사회적협동조합과 관련부서에 제공하는 것에 동의합니다.</p>
-          </div>
-          <div style={{ border: '1px solid #000', padding: '1mm' }}>
-            <p style={{ fontWeight: 'bold', fontSize: '10pt', margin: '0 0 0.3mm 0' }}>[고유식별정보의 처리]</p>
-            <p style={{ fontSize: '10pt', margin: '0', lineHeight: '1.1' }}>본인은 소득세법에 따른 소득신고를 위하여 본인의 고유식별번호(주민등록번호)를 경남산청의료복지사회적협동조합과 관련부서에 제공하는 것에 동의합니다.</p>
+      {/* 개인정보 처리 항목 - 2개 박스 좌우 배치 */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '3mm' // 11. 두 박스 사이 간격을 1mm -> 5mm로 늘림
+        // marginBottom: '10mm' 삭제 (버튼이 내부로 이동했기 때문)
+      }}>
+
+        {/* [개인정보 처리] 박스 */}
+        {/* 12. flex-direction: column을 사용해 내부 요소를 세로로 정렬 */}
+        <div style={{
+          border: '1px solid #000',
+          padding: '2mm', // 13. 박스 내부 여백을 1mm -> 4mm로 늘림
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <p style={{ fontWeight: 'bold', fontSize: '10pt', margin: '0 0 1mm 0' }}> {/* 14. 소제목과 내용 사이 간격을 0.3mm -> 3mm로 늘림 */}
+            [개인정보 처리]
+          </p>
+          {/* 15. flexGrow: 1로 설정해 이 텍스트가 남는 공간을 모두 차지 (버튼은 하단에 고정됨) */}
+          <p style={{
+            fontSize: '10pt',
+            margin: '0',
+            lineHeight: '1.3', // 16. 줄 간격을 1.1 -> 1.3으로 늘림
+            flexGrow: 1
+          }}>
+            본인은 경남산청의료복지사회적협동조합의 개인 정보처리 방침에 동의하며, 수당 지급을 위하여 성명, 소속 및 직위, 주소, 은행 및 계좌정보 등의 개인정보를 경남산청의료복지사회적협동조합과 관련부서에 제공하는 것에 동의합니다.
+          </p>
+
+          {/* 17. '동의/미동의' 버튼 영역 (정렬 수정) */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '5mm', marginTop: '4mm' }}>
+            
+            {/* 'alignItems: 'baseline''을 'alignItems: 'center''로 수정 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2mm', cursor: 'pointer' }}>
+              <span style={{ fontSize: '10pt', lineHeight: '1', margin: '0' }}>ㅁ동의</span>
+            </div>
+
+            {/* 'alignItems: 'baseline''을 'alignItems: 'center''로 수정 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2mm', cursor: 'pointer' }}>
+              <span style={{ fontSize: '10pt', lineHeight: '1', margin: '0' }}>ㅁ미동의</span>
+            </div>
+
           </div>
         </div>
 
-        {/* 동의 체크박스 - 4개 (동의/미동의 × 2개 항목) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1mm' }}>
-          <div style={{ border: '1px solid #000', padding: '1mm', textAlign: 'center', fontSize: '10pt' }}>
-            <input type="checkbox" style={{ marginRight: '1mm' }} />
-            동의
-          </div>
-          <div style={{ border: '1px solid #000', padding: '1mm', textAlign: 'center', fontSize: '10pt' }}>
-            <input type="checkbox" style={{ marginRight: '1mm' }} />
-            미동의
-          </div>
-          <div style={{ border: '1px solid #000', padding: '1mm', textAlign: 'center', fontSize: '10pt' }}>
-            <input type="checkbox" style={{ marginRight: '1mm' }} />
-            동의
-          </div>
-          <div style={{ border: '1px solid #000', padding: '1mm', textAlign: 'center', fontSize: '10pt' }}>
-            <input type="checkbox" style={{ marginRight: '1mm' }} />
-            미동의
+        {/* [고유식별정보의 처리] 박스 */}
+        <div style={{
+          border: '1px solid #000',
+          padding: '4mm', // 13. 박스 내부 여백
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <p style={{ fontWeight: 'bold', fontSize: '10pt', margin: '0 0 3mm 0' }}> {/* 14. 소제목과 내용 사이 간격 */}
+            [고유식별정보의 처리]
+          </p>
+          <p style={{
+            fontSize: '10pt',
+            margin: '0',
+            lineHeight: '1.3', // 16. 줄 간격
+            flexGrow: 1 // 15. 남는 공간 차지
+          }}>
+            본인은 소득세법에 따른 소득신고를 위하여 본인의 고유식별번호(주민등록번호)를 경남산청의료복지사회적협동조합과 관련부서에 제공하는 것에 동의합니다.
+          </p>
+
+          {/* 17. (신규) '동의/미동의' 버튼 영역을 박스 내부 하단으로 이동 */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '5mm', marginTop: '4mm' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '2mm', cursor: 'pointer' }}>
+              {/* 사각형 박스로 표현: PDF 변환 시 안정적인 렌더링 */}
+              <span style={{ fontSize: '10pt', lineHeight: '1', margin: '0' }}>ㅁ동의</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '2mm', cursor: 'pointer' }}>
+              <span style={{ fontSize: '10pt', lineHeight: '1', margin: '0' }}>ㅁ미동의</span>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* 18. (삭제) 기존의 4개 체크박스 영역은 위로 이동했으므로 삭제함 */}
+      {/*
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1mm' }}>
+          ...
+        </div>
+      */}
+    </div>
 
       {/* ========== 9. 정보주체 서명 영역 ==========
           서명란 표시

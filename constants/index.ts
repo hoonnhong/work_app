@@ -7,7 +7,7 @@
  */
 
 // 아이콘 컴포넌트들을 가져옵니다. 각 메뉴 항목 옆에 표시될 아이콘들입니다.
-import { HomeIcon, PencilIcon, CalculatorIcon, MegaphoneIcon, BanknotesIcon, UserGroupIcon, CodeBracketIcon, LinkIcon, QuestionMarkCircleIcon, WrenchScrewdriverIcon, NewspaperIcon, SparklesIcon, BriefcaseIcon, Cog6ToothIcon, KeyIcon } from '../components/Icons';
+import { HomeIcon, PencilIcon, CalculatorIcon, MegaphoneIcon, BanknotesIcon, UserGroupIcon, CodeBracketIcon, LinkIcon, QuestionMarkCircleIcon, WrenchScrewdriverIcon, NewspaperIcon, SparklesIcon, BriefcaseIcon, Cog6ToothIcon, KeyIcon, CalendarIcon } from '../components/Icons';
 
 // ALL_NAV_LINKS: 모든 내비게이션 링크의 정보를 담은 중앙 객체입니다.
 // 각 링크는 { 이름, 경로, 아이콘 } 형태의 객체로 구성됩니다.
@@ -22,6 +22,7 @@ export const ALL_NAV_LINKS = {
     prompts: { name: '프롬프트 편집기', path: '/prompts', icon: WrenchScrewdriverIcon },
     tax: { name: '원천징수 계산기', path: '/tax-calculator', icon: BanknotesIcon },
     hr: { name: '구성원 관리', path: '/hr-management', icon: UserGroupIcon },
+    events: { name: '행사 관리', path: '/event-management', icon: CalendarIcon },
     organizationInfo: { name: '조합 정보 관리', path: '/organization-info', icon: KeyIcon },
     devNotes: { name: '개발 노트', path: '/dev-notes', icon: CodeBracketIcon },
     links: { name: '자주 가는 사이트', path: '/links', icon: LinkIcon },
@@ -58,6 +59,7 @@ export const SIDEBAR_STRUCTURE = [
     links: [
       ALL_NAV_LINKS.tax,
       ALL_NAV_LINKS.hr,
+      ALL_NAV_LINKS.events,
       ALL_NAV_LINKS.organizationInfo,
     ]
   },

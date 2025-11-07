@@ -30,6 +30,7 @@ const AiCalculatorPage = lazy(() => import('./pages/AiCalculatorPage'));
 const AnnouncementPage = lazy(() => import('./pages/AnnouncementPage'));
 const TaxCalculatorPage = lazy(() => import('./pages/TaxCalculatorPage'));
 const HrManagementPage = lazy(() => import('./pages/HrManagementPage'));
+const EventManagementPage = lazy(() => import('./pages/EventManagementPage'));
 const OrganizationInfoPage = lazy(() => import('./pages/OrganizationInfoPage'));
 const DevNotesPage = lazy(() => import('./pages/DevNotesPage'));
 const FavoriteLinksPage = lazy(() => import('./pages/FavoriteLinksPage'));
@@ -88,6 +89,7 @@ const App: React.FC = () => {
                 <Route path={ALL_NAV_LINKS.prompts.path} element={<PromptEditorPage />} />
                 <Route path={ALL_NAV_LINKS.tax.path} element={<TaxCalculatorPage />} />
                 <Route path={ALL_NAV_LINKS.hr.path} element={<HrManagementPage />} />
+                <Route path={ALL_NAV_LINKS.events.path} element={<EventManagementPage />} />
                 <Route path={ALL_NAV_LINKS.organizationInfo.path} element={<OrganizationInfoPage />} />
                 <Route path={ALL_NAV_LINKS.devNotes.path} element={<DevNotesPage />} />
                 <Route path={ALL_NAV_LINKS.links.path} element={<FavoriteLinksPage />} />

@@ -13,6 +13,7 @@ interface PaymentConfirmationData {
   eventName: string;
   eventDate: string;
   eventTime: string;
+  instructionDuration: string; // 강의시간 (예: 2시간)
   location?: string;
   topic: string;
   instructorName: string;
@@ -35,6 +36,7 @@ const InstructorPaymentConfirmation: React.FC = () => {
   const [selectedInstructorIndex, setSelectedInstructorIndex] = useState<number>(-1); // -1: 주강사, 0+: 추가강사
   const [paymentData, setPaymentData] = useState<PaymentConfirmationData | null>(null);
   const [instructorFee, setInstructorFee] = useState<number>(0);
+  const [instructionDuration, setInstructionDuration] = useState<string>(''); // 강의시간 (예: 2시간)
   const printRef = useRef<HTMLDivElement>(null);
 
   // 실시간 구독 설정
@@ -110,6 +112,7 @@ const InstructorPaymentConfirmation: React.FC = () => {
             eventName: selectedEvent.eventName,
             eventDate: selectedEvent.eventDate,
             eventTime: selectedEvent.eventTime,
+            instructionDuration: instructionDuration || '',
             location: selectedEvent.location || '',
             topic: selectedEvent.topic,
             instructorName: instructor.name,
@@ -133,7 +136,7 @@ const InstructorPaymentConfirmation: React.FC = () => {
         }
       }
     }
-  }, [selectedEventId, selectedInstructorIndex, instructorFee, events, employees]);
+  }, [selectedEventId, selectedInstructorIndex, instructorFee, instructionDuration, events, employees]);
 
   // 강사 선택 자동화 (행사 선택시 1명의 강사만 있으면 자동 선택)
   useEffect(() => {
@@ -280,6 +283,7 @@ const InstructorPaymentConfirmation: React.FC = () => {
                 setSelectedEventId(e.target.value);
                 setSelectedInstructorIndex(-1);
                 setInstructorFee(0);
+                setInstructionDuration('');
               }}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
             >
@@ -309,6 +313,7 @@ const InstructorPaymentConfirmation: React.FC = () => {
                     onChange={(e) => {
                       setSelectedInstructorIndex(Number(e.target.value));
                       setInstructorFee(0);
+                      setInstructionDuration('');
                     }}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                   >
@@ -335,19 +340,35 @@ const InstructorPaymentConfirmation: React.FC = () => {
           })()}
         </div>
 
-        {/* 주강사인 경우만 강사료 입력 필드 표시 */}
-        {selectedEventId && selectedInstructorIndex === -1 && (
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              강사료 (선택사항 - 입력시 이 금액으로 확인서 작성)
-            </label>
-            <input
-              type="number"
-              value={instructorFee}
-              onChange={(e) => setInstructorFee(Number(e.target.value))}
-              placeholder="강사료를 입력하세요"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-            />
+        {/* 강사 선택시 강의시간 및 강사료 입력 필드 표시 */}
+        {selectedEventId && (
+          <div className="mt-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                강의시간 (예: 2시간) *
+              </label>
+              <input
+                type="text"
+                value={instructionDuration}
+                onChange={(e) => setInstructionDuration(e.target.value)}
+                placeholder="강의시간을 입력하세요 (예: 2시간)"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+              />
+            </div>
+            {selectedInstructorIndex === -1 && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  강사료 (선택사항 - 입력시 이 금액으로 확인서 작성)
+                </label>
+                <input
+                  type="number"
+                  value={instructorFee}
+                  onChange={(e) => setInstructorFee(Number(e.target.value))}
+                  placeholder="강사료를 입력하세요"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -379,13 +400,13 @@ const InstructorPaymentConfirmation: React.FC = () => {
 
       {!paymentData && selectedEventId && (
         <div className="bg-amber-50 dark:bg-amber-900 border border-amber-200 dark:border-amber-700 rounded-lg p-4 text-amber-800 dark:text-amber-200">
-          강사료를 입력해주세요.
+          강의시간을 입력해주세요.
         </div>
       )}
 
       {!selectedEventId && (
         <div className="bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-4 text-center text-slate-600 dark:text-slate-400">
-          행사를 선택하고 강사료를 입력하면 강사비 지급 확인서가 표시됩니다.
+          행사를 선택하고 강의시간을 입력하면 강사비 지급 확인서가 표시됩니다.
         </div>
       )}
     </div>
