@@ -6,7 +6,7 @@ import InstructorPaymentConfirmationLayout from './InstructorPaymentConfirmation
 import html2pdf from 'html2pdf.js';
 
 const eventService = new FirestoreService<Event>('events');
-const employeeService = new FirestoreService<Member>('members');
+const memberService = new FirestoreService<Member>('members');
 
 interface PaymentConfirmationData {
   eventId: string;
@@ -57,7 +57,7 @@ const InstructorPaymentConfirmation: React.FC = () => {
       setEvents(fixedEvents);
     });
 
-    const unsubscribeEmployees = employeeService.subscribe((data) => {
+    const unsubscribeEmployees = memberService.subscribe((data) => {
       // 구성원의 ID를 명시적으로 숫자로 변환
       const membersWithNumericIds = data.map((member) => ({
         ...member,
