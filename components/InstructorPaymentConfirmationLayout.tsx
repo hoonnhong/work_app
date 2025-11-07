@@ -100,10 +100,9 @@ const InstructorPaymentConfirmationLayout = React.forwardRef<
           - 각 줄 marginBottom: 1.2mm (행간)
       */}
       <div style={{ marginBottom: '3mm', fontSize: '13pt' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr 40mm', gap: '2px', alignItems: 'flex-start', marginBottom: '1.2mm' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '2px', alignItems: 'flex-start', marginBottom: '1.2mm' }}>
           <span style={{ fontSize: '13pt' }}>  - 성함</span>
-          <div style={{ paddingBottom: '1px', minHeight: '14px', fontSize: '13pt' }}>: {paymentData.instructorName}</div>
-          <span style={{ textAlign: 'right', fontSize: '12pt' }}>(서명)</span>
+          <div style={{ paddingBottom: '1px', minHeight: '14px', fontSize: '13pt' }}>: {paymentData.instructorName}  (서명)</div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '50mm 1fr', gap: '2px', alignItems: 'flex-start', marginBottom: '1.2mm' }}>
           <span style={{ fontSize: '13pt' }}>  - 주민등록번호</span>
