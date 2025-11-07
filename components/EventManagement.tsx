@@ -77,7 +77,7 @@ const EventManagement: React.FC = () => {
       setEvents(data);
     });
 
-    const unsubscribeEmployees = employeeService.subscribe((data) => {
+    const unsubscribeEmployees = memberService.subscribe((data) => {
       // 구성원의 ID를 명시적으로 숫자로 변환
       const membersWithNumericIds = data.map((member) => ({
         ...member,
