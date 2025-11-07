@@ -3,6 +3,9 @@ import { Event, Member } from '../types';
 import { FirestoreService } from '../src/firebase/firestore-service';
 import { PencilSquareIcon, TrashIcon, PlusIcon, ChevronDownIcon } from './Icons';
 import { formatEventDate } from '../utils/dateUtils';
+import AddMemberModal from './AddMemberModal';
+import InstructorSelector from './InstructorSelector';
+import MultiInstructorPaymentForm from './MultiInstructorPaymentForm';
 
 const eventService = new FirestoreService<Event>('events');
 const employeeService = new FirestoreService<Member>('members');
@@ -67,13 +70,6 @@ const EventManagement: React.FC = () => {
     instructorFee: number | string;
     incomeType: string;
   }>>([]);
-  const [employeeFormData, setEmployeeFormData] = useState({
-    name: '',
-    phone: '',
-    residentRegistrationNumber: '',
-    bankName: '',
-    accountNumber: '',
-  });
 
   // 실시간 구독 설정
   useEffect(() => {
@@ -330,55 +326,26 @@ const EventManagement: React.FC = () => {
     }
   };
 
-  // 구성원 추가 저장
-  const handleAddEmployee = async () => {
-    if (!employeeFormData.name) {
-      alert('이름은 필수 항목입니다.');
-      return;
-    }
+  // 구성원 추가 완료 핸들러
+  const handleMemberAddSuccess = (newMember: Member) => {
+    const newMemberName = newMember.name;
 
-    try {
-      const newEmployeeData = {
-        name: employeeFormData.name,
-        phone: employeeFormData.phone,
-        residentRegistrationNumber: employeeFormData.residentRegistrationNumber,
-        bankName: employeeFormData.bankName,
-        accountNumber: employeeFormData.accountNumber,
-      };
-
-      const newEmployeeRef = await (employeeService as any).add(newEmployeeData);
-      const newEmployeeName = employeeFormData.name;
-
-      // 모달 닫기 및 폼 초기화
-      setIsEmployeeModalOpen(false);
-      setEmployeeFormData({
-        name: '',
-        phone: '',
-        residentRegistrationNumber: '',
-        bankName: '',
-        accountNumber: '',
-      });
-
-      // Firestore의 실시간 구독이 업데이트되기를 기다린 후 선택
-      // 약 500ms 후에 새로운 직원을 찾아서 자동 선택
-      setTimeout(() => {
-        const newEmployee = employees.find((emp) => emp.name === newEmployeeName);
-        if (newEmployee) {
-          setInstructorSearchInput(newEmployeeName);
-          setFormData((prev) => ({
-            ...prev,
-            instructorId: String(newEmployee.id),
-          }));
-          setShowInstructorDropdown(false);
-          alert('구성원이 추가되었습니다. 강사명에 자동으로 등록되었습니다.');
-        } else {
-          alert('구성원이 추가되었습니다. 검색 상자에서 강사를 선택하세요.');
-        }
-      }, 500);
-    } catch (error) {
-      console.error('구성원 추가 오류:', error);
-      alert('구성원 추가 중 오류가 발생했습니다.');
-    }
+    // Firestore의 실시간 구독이 업데이트되기를 기다린 후 선택
+    // 약 500ms 후에 새로운 직원을 찾아서 자동 선택
+    setTimeout(() => {
+      const addedEmployee = employees.find((emp) => emp.name === newMemberName);
+      if (addedEmployee) {
+        setInstructorSearchInput(newMemberName);
+        setFormData((prev) => ({
+          ...prev,
+          instructorId: String(addedEmployee.id),
+        }));
+        setShowInstructorDropdown(false);
+        alert('강사명에 자동으로 등록되었습니다.');
+      } else {
+        alert('검색 상자에서 강사를 선택하세요.');
+      }
+    }, 500);
   };
 
   // 강사명 조회
@@ -749,55 +716,17 @@ const EventManagement: React.FC = () => {
                 </>
               )}
 
-              {/* 강사 선택 - 검색 가능한 입력 */}
-              <div className="relative">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  강사
-                </label>
-                <input
-                  type="text"
-                  value={instructorSearchInput}
-                  onChange={handleInstructorSearchChange}
-                  onFocus={() => setShowInstructorDropdown(true)}
-                  placeholder="강사명을 입력하거나 선택하세요"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                />
-
-                {/* 강사 검색 결과 드롭다운 */}
-                {showInstructorDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
-                    {getFilteredInstructors().length > 0 ? (
-                      getFilteredInstructors().map((emp) => (
-                        <button
-                          key={emp.id}
-                          type="button"
-                          onClick={() => handleSelectInstructor(emp.id, emp.name)}
-                          className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-600 border-b border-slate-200 dark:border-slate-600 last:border-b-0 text-slate-900 dark:text-slate-100"
-                        >
-                          {emp.name}
-                        </button>
-                      ))
-                    ) : (
-                      <div className="space-y-2 p-2">
-                        <div className="px-4 py-2 text-slate-500 dark:text-slate-400 text-sm text-center">
-                          검색 결과가 없습니다
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowInstructorDropdown(false);
-                            setIsEmployeeModalOpen(true);
-                          }}
-                          className="w-full px-4 py-2 text-sm bg-primary-600 text-white rounded hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 flex items-center justify-center gap-1"
-                        >
-                          <PlusIcon className="w-4 h-4" />
-                          구성원 추가
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              {/* 강사 선택 */}
+              <InstructorSelector
+                instructorSearchInput={instructorSearchInput}
+                showInstructorDropdown={showInstructorDropdown}
+                filteredInstructors={getFilteredInstructors()}
+                onSearchChange={handleInstructorSearchChange}
+                onSelect={handleSelectInstructor}
+                onDropdownToggle={setShowInstructorDropdown}
+                onAddMember={() => setIsEmployeeModalOpen(true)}
+                employeesLoading={employees.length === 0}
+              />
 
               {/* 강사비 */}
               <div>
@@ -857,101 +786,27 @@ const EventManagement: React.FC = () => {
               </div>
 
               {/* 다중 강사비 관리 */}
-              <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                    추가 강사비 (선택사항)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      // 강사 추가 모달/섹션을 위한 상태 추가 가능
-                      const newInstructor = {
-                        instructorId: 0,
-                        instructorFee: '',
-                        incomeType: '',
-                      };
-                      setInstructorPayments([...instructorPayments, newInstructor]);
-                    }}
-                    className="flex items-center gap-1 px-3 py-1 text-sm bg-primary-600 text-white rounded hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600"
-                  >
-                    <PlusIcon className="w-4 h-4" />
-                    강사 추가
-                  </button>
-                </div>
-
-                {/* 추가된 강사 목록 */}
-                {instructorPayments.length > 0 && (
-                  <div className="space-y-2 bg-slate-50 dark:bg-slate-700 p-3 rounded-lg">
-                    {instructorPayments.map((payment, index) => (
-                      <div key={index} className="flex gap-2 items-start bg-white dark:bg-slate-800 p-2 rounded border border-slate-200 dark:border-slate-600">
-                        <div className="flex-1 space-y-2">
-                          {/* 강사 선택 */}
-                          <select
-                            value={payment.instructorId}
-                            onChange={(e) => {
-                              const newPayments = [...instructorPayments];
-                              newPayments[index].instructorId = Number(e.target.value);
-                              setInstructorPayments(newPayments);
-                            }}
-                            className="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                          >
-                            <option value={0}>강사를 선택하세요</option>
-                            {employees.map((emp) => (
-                              <option key={emp.id} value={emp.id}>
-                                {emp.name}
-                              </option>
-                            ))}
-                          </select>
-
-                          <div className="flex gap-2">
-                            {/* 강사비 */}
-                            <input
-                              type="number"
-                              value={payment.instructorFee}
-                              onChange={(e) => {
-                                const newPayments = [...instructorPayments];
-                                newPayments[index].instructorFee = Number(e.target.value);
-                                setInstructorPayments(newPayments);
-                              }}
-                              placeholder="강사비"
-                              className="flex-1 px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                            />
-
-                            {/* 소득 종류 */}
-                            <select
-                              value={payment.incomeType}
-                              onChange={(e) => {
-                                const newPayments = [...instructorPayments];
-                                newPayments[index].incomeType = e.target.value;
-                                setInstructorPayments(newPayments);
-                              }}
-                              className="flex-1 px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                            >
-                              <option value="">선택</option>
-                              <option value="사업소득">사업소득</option>
-                              <option value="기타소득">기타소득</option>
-                            </select>
-
-                            {/* 삭제 버튼 */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const newPayments = instructorPayments.filter((_, i) => i !== index);
-                                setInstructorPayments(newPayments);
-                              }}
-                              className="px-2 py-1 text-red-600 hover:bg-red-100 rounded dark:text-red-400 dark:hover:bg-red-900"
-                              title="삭제"
-                            >
-                              <TrashIcon className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <MultiInstructorPaymentForm
+                payments={instructorPayments}
+                employees={employees}
+                onAddPayment={() => {
+                  const newInstructor = {
+                    instructorId: 0,
+                    instructorFee: '',
+                    incomeType: '',
+                  };
+                  setInstructorPayments([...instructorPayments, newInstructor]);
+                }}
+                onUpdatePayment={(index, field, value) => {
+                  const newPayments = [...instructorPayments];
+                  newPayments[index] = { ...newPayments[index], [field]: value };
+                  setInstructorPayments(newPayments);
+                }}
+                onRemovePayment={(index) => {
+                  const newPayments = instructorPayments.filter((_, i) => i !== index);
+                  setInstructorPayments(newPayments);
+                }}
+              />
             </div>
 
             {/* 버튼 */}
@@ -973,115 +828,12 @@ const EventManagement: React.FC = () => {
         </div>
       )}
 
-      {/* 구성원 추가 모달 */}
-      {isEmployeeModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-800 rounded-lg p-6 w-full max-w-lg">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
-              새 구성원 추가
-            </h2>
-
-            <div className="space-y-4">
-              {/* 이름 */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  이름 *
-                </label>
-                <input
-                  type="text"
-                  value={employeeFormData.name}
-                  onChange={(e) => setEmployeeFormData({ ...employeeFormData, name: e.target.value })}
-                  placeholder="이름을 입력하세요"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                />
-              </div>
-
-              {/* 전화번호 */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  전화번호
-                </label>
-                <input
-                  type="tel"
-                  value={employeeFormData.phone}
-                  onChange={(e) => setEmployeeFormData({ ...employeeFormData, phone: e.target.value })}
-                  placeholder="전화번호를 입력하세요"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                />
-              </div>
-
-              {/* 주민등록번호 */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  주민등록번호
-                </label>
-                <input
-                  type="text"
-                  value={employeeFormData.residentRegistrationNumber}
-                  onChange={(e) => setEmployeeFormData({ ...employeeFormData, residentRegistrationNumber: e.target.value })}
-                  placeholder="주민등록번호를 입력하세요"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                />
-              </div>
-
-              {/* 은행명 */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  은행명
-                </label>
-                <input
-                  type="text"
-                  value={employeeFormData.bankName}
-                  onChange={(e) => setEmployeeFormData({ ...employeeFormData, bankName: e.target.value })}
-                  placeholder="은행명을 입력하세요"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                />
-              </div>
-
-              {/* 계좌번호 */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  계좌번호
-                </label>
-                <input
-                  type="text"
-                  value={employeeFormData.accountNumber}
-                  onChange={(e) => setEmployeeFormData({ ...employeeFormData, accountNumber: e.target.value })}
-                  placeholder="계좌번호를 입력하세요"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                />
-              </div>
-            </div>
-
-            {/* 버튼 */}
-            <div className="flex gap-3 mt-6">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsEmployeeModalOpen(false);
-                  setEmployeeFormData({
-                    name: '',
-                    phone: '',
-                    residentRegistrationNumber: '',
-                    bankName: '',
-                    accountNumber: '',
-                  });
-                }}
-                className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                onClick={handleAddEmployee}
-                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600"
-              >
-                추가
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 구성원 추가 모달 - AddMemberModal 컴포넌트 사용 */}
+      <AddMemberModal
+        isOpen={isEmployeeModalOpen}
+        onClose={() => setIsEmployeeModalOpen(false)}
+        onSuccess={handleMemberAddSuccess}
+      />
     </div>
   );
 };
